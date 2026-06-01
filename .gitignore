@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Claude Code / Superpowers (local AI tooling — not for GitHub)
+CLAUDE.md
+.claude/
+docs/superpowers/
+.mcp.json
