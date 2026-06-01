@@ -81,8 +81,8 @@ narrative, but they offer no deterministic analytics, no traceability, no link t
 models, and little workflow control.
 
 This project is run with an asset-management partner that wants a system to support exactly this
-decision. We propose a *reusable agentic platform for finance* and test it on one concrete use
-case: *auditable, sentiment-aware recommendations for a portfolio's bond/stock split*, written up
+decision. We propose a reusable agentic platform for finance and test it on one concrete use
+case: auditable, sentiment-aware recommendations for a portfolio's bond/stock split, written up
 as an investment-committee report. Where possible, the platform incorporates some of the tools and
 models the firm already uses; where those cannot be shared or integrated directly, it aims to
 reproduce similar behaviour through stand-ins with the same interface. On top of that it adds a
@@ -107,11 +107,11 @@ behind it.
   radius: 2pt,
   width: 100%,
 )[
-  *How can a reusable LangGraph-based agentic platform support an investment committee in
+  How can a reusable LangGraph-based agentic platform support an investment committee in
   producing auditable, sentiment-aware recommendations for a portfolio's dynamic bond/stock
   allocation, by combining the firm's existing quantitative models, source-grounded market
   narratives, multi-agent sentiment simulation via a dedicated agentic engine, and deterministic portfolio
-  risk analytics?*
+  risk analytics?
 ]
 
 This is an applied question, not a purely academic one. The point is to build and evaluate a
@@ -126,19 +126,19 @@ a realistic allocation workflow the partner actually cares about.
 
 The project has five objectives.
 
-*A reusable platform.* We design an agentic platform for financial workflows that handles
+A reusable platform. We design an agentic platform for financial workflows that handles
 orchestration, state, tool use, memory, validation, and human-in-the-loop control, and that can
 be extended beyond the allocation case. LangGraph fits well here, since it is built for
 long-running, stateful agent workflows with persistence, durable execution, tracing, and human
 oversight @langgraph.
 
-*One concrete workflow.* On top of the platform we build a dynamic bond/stock allocation
+One concrete workflow. On top of the platform we build a dynamic bond/stock allocation
 workflow. Given a sandbox portfolio, a mandate, the firm's signals, and a market context, it
 retrieves the relevant information, builds and simulates sentiment scenarios, computes the risk
 and return of candidate equity/bond mixes, and writes a memo recommending whether and how far to
 shift the split.
 
-*Integration and simulation.* We look at how the platform can plug into the partner's existing
+Integration and simulation. We look at how the platform can plug into the partner's existing
 tools and models, and how a sentiment-simulation component fits alongside them. The aim is to
 incorporate some of the firm's models, signals, and feeds as callable tools where that is feasible,
 and otherwise to provide similar behaviour through stand-ins rather than reimplementing the firm's
@@ -149,7 +149,7 @@ simulation cautiously: not to forecast prices or returns, but to model how senti
 stakeholders react, and what second-order effects a narrative shift might have. We keep it an
 optional, isolated component, with a small internal adapter we write ourselves as the default.
 
-*Reasoning module.* The platform needs a reasoning step that turns the gathered evidence into a
+Reasoning module. The platform needs a reasoning step that turns the gathered evidence into a
 bounded _outlook_: a view on the bond/stock tilt with explicit uncertainty that feeds the
 deterministic analytics. In its basic form this is a single step. If time allows, we extend it
 with the macro/micro decomposition from the Nexus forecasting framework @nexus, where a macro step
@@ -158,7 +158,7 @@ combined. Either way the module is an input to the analytics, not a price or ret
 not the recommendation on its own, and we deliberately leave out the backtest-driven calibration
 loop.
 
-*Evaluation.* We evaluate the prototype on a post-cutoff backtest and against transparent baselines
+Evaluation. We evaluate the prototype on a post-cutoff backtest and against transparent baselines
 rather than a chat assistant: a static benchmark split (e.g. a fixed 60/40) and a traditional
 indicator-driven rule set built on classic signals such as equity valuations (P/E ratio or equity
 earnings yield versus bond yields), Fed rate-path expectations, and US labour-market data. The
@@ -174,39 +174,39 @@ avoid leakage, and looks at decision quality together with source grounding and 
 
 The prototype has seven main components.
 
-+ *Agentic orchestration layer.* A LangGraph supervisor coordinates the specialized agents, holds
++ Agentic orchestration layer. A LangGraph supervisor coordinates the specialized agents, holds
   the workflow state, logs intermediate output, and enforces the human approval points. This is
   the reusable core of the platform.
 
-+ *House-model and data integration layer.* Where feasible, this incorporates some of the firm's
++ House-model and data integration layer. Where feasible, this incorporates some of the firm's
   quantitative models, signals, and data feeds as deterministic tools the platform can call. Where
   a model or feed cannot be shared or integrated directly, a stand-in with the same interface
   provides similar behaviour. This is the piece that connects the platform to the firm's existing
   tools.
 
-+ *Research and RAG agent.* Retrieves and summarizes relevant financial news, macro and rates
++ Research and RAG agent. Retrieves and summarizes relevant financial news, macro and rates
   commentary, company filings, and market reports. Claims in the memo are linked back to their
   sources wherever possible.
 
-+ *Sentiment scenario agent.* Turns retrieved information and user-defined themes into structured
++ Sentiment scenario agent. Turns retrieved information and user-defined themes into structured
   sentiment scenarios for the equity/bond decision: a risk-off rotation out of equities, a hawkish
   central-bank surprise, a growth scare, weak credit sentiment, a geopolitical escalation, or a
   move away from high-duration assets.
 
-+ *Sentiment-simulation module.* Simulates how different market participants might react to an
++ Sentiment-simulation module. Simulates how different market participants might react to an
   initial narrative shock. The output is a structured picture of exposure (which sectors, factors,
   or parts of the split are most affected) that feeds the reasoning rather than acting as a trading
   signal or a return forecast. It runs through an integration with an external agentic engine such
   as OASIS or, by default, a small internal adapter we write ourselves.
 
-+ *Allocation analytics tools.* Deterministic Python tools that compute the risk and return of
++ Allocation analytics tools. Deterministic Python tools that compute the risk and return of
   candidate bond/stock mixes: returns, volatility, drawdowns, VaR/CVaR, concentration, factor and
   sector exposure, benchmark-relative metrics, scenario losses, and how sensitive the split is to
   its inputs. Classical methods such as mean-variance optimization or risk parity @markowitz give
   a transparent reference allocator, but any optimization stays secondary to the decision-support
   framing.
 
-+ *Validation, reporting, and audit layer.* A validation agent flags unsupported claims, separates
++ Validation, reporting, and audit layer. A validation agent flags unsupported claims, separates
   fact from assumption, notes the limitations, and drafts the committee memo. The audit layer
   records sources, tool calls (including which house models ran), model versions, scenario and
   simulation assumptions, intermediate outputs, validation checks, and human approvals.
@@ -221,20 +221,20 @@ prices or returns, and it does not produce the recommendation by itself.
 As an optional extension, if time allows, we structure that step as the macro/micro split from
 Nexus @nexus:
 
-- A *macro-reasoning step* sets the broad regime behind the bond/stock decision (the rate cycle,
+- A macro-reasoning step sets the broad regime behind the bond/stock decision (the rate cycle,
   the growth-versus-inflation backdrop, and the overall risk-on/risk-off posture), which gives the
   direction of the tilt.
-- A *micro-reasoning step* weighs near-term catalysts: data releases, central-bank meetings,
+- A micro-reasoning step weighs near-term catalysts: data releases, central-bank meetings,
   earnings, and the sentiment shocks the simulation module surfaces.
-- A *synthesizer step* merges the two into one view and spells out how they were weighed.
+- A synthesizer step merges the two into one view and spells out how they were weighed.
 
 Either way we leave the backtest-driven calibration loop out of scope.
 
 Each run produces two artifacts:
 
-+ an *investment-committee allocation memo*: whether and by how much to change the bond/stock
++ an investment-committee allocation memo: whether and by how much to change the bond/stock
   split, with the rationale, scenario analysis, and the assumptions and limits behind it;
-+ an *audit bundle*: the run configuration, data sources, tool and model calls, simulation
++ an audit bundle: the run configuration, data sources, tool and model calls, simulation
   assumptions, validation results, a claim-to-evidence matrix, and the recorded human approvals.
 
 // ---------------------------------------------------------------------------
@@ -245,20 +245,20 @@ Each run produces two artifacts:
 
 The list is trimmed to what a working, evaluable prototype actually needs:
 
-- the *reusable agentic platform* (LangGraph orchestration: workflow state, tool registry,
+- the reusable agentic platform (LangGraph orchestration: workflow state, tool registry,
   validation, human-in-the-loop control, and audit logging);
-- the *dynamic bond/stock allocation workflow* built on the platform, incorporating the partner's
-  models and data where feasible (or stand-ins with the same interface), producing the *committee
-  memo and its audit bundle*;
-- *deterministic allocation analytics tools, with tests*;
-- the *reasoning module* that produces the bounded outlook, with an optional macro/micro split
+- the dynamic bond/stock allocation workflow built on the platform, incorporating the partner's
+  models and data where feasible (or stand-ins with the same interface), producing the committee
+  memo and its audit bundle;
+- deterministic allocation analytics tools, with tests;
+- the reasoning module that produces the bounded outlook, with an optional macro/micro split
   inspired by Nexus @nexus (no calibration) if time allows;
-- the *sentiment-simulation component*, either an external agentic-engine integration (e.g. OASIS)
+- the sentiment-simulation component, either an external agentic-engine integration (e.g. OASIS)
   or, by default, a minimal internal adapter we write ourselves;
-- the *evaluation*: a post-cutoff backtest harness, the two baselines (static benchmark and
+- the evaluation: a post-cutoff backtest harness, the two baselines (static benchmark and
   traditional indicator-based allocation), and the comparison against the platform, with component
   ablations and reasoning-quality results;
-- a *final report* covering architecture, integration, evaluation, limitations, governance, and
+- a final report covering architecture, integration, evaluation, limitations, governance, and
   extendability.
 
 // ---------------------------------------------------------------------------
@@ -270,20 +270,20 @@ The list is trimmed to what a working, evaluable prototype actually needs:
 The evaluation is kept light. Backtests are used to sanity-check and stress the decision logic, not
 to claim investment performance or present a tradeable strategy.
 
-*Baselines.* The platform is compared against two transparent baselines:
+Baselines. The platform is compared against two transparent baselines:
 
-+ a *static benchmark allocation*, a fixed split such as 60/40, standing in for taking no active
++ a static benchmark allocation, a fixed split such as 60/40, standing in for taking no active
   view; and
-+ a *traditional allocation baseline*, a deterministic rule set that maps classic indicators (for
++ a traditional allocation baseline, a deterministic rule set that maps classic indicators (for
   example equity valuations, Fed rate-path expectations, and US labour-market data) to a tilt. Its
   exact specification follows a short literature review and discussion with the practical partner's
   experts, and is frozen before any results are looked at, so the comparison stays fair.
 
-*Post-cutoff backtesting.* Following Nexus @nexus, evaluation runs only on data after the language
+Post-cutoff backtesting. Following Nexus @nexus, evaluation runs only on data after the language
 models' knowledge cutoff, so a model cannot simply recall a known outcome. This is the main leakage
 control.
 
-*What we measure.* On each window we compare the proposed tilts with the baselines on a small set
+What we measure. On each window we compare the proposed tilts with the baselines on a small set
 of risk-adjusted and stability measures, for example realized volatility, maximum drawdown, a
 Sharpe-type ratio, and the directional hit rate of the tilt. We also check that the memo is
 well-grounded: each material claim should trace through the audit bundle to a source, a tool
