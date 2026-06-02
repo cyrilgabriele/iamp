@@ -64,7 +64,7 @@
 = Motivation
 
 Banks and asset managers are turning to AI to help analysts, portfolio managers, and risk teams
-get through information-heavy work. In these settings, though, the system has to stay under human
+get through information-heavy work. In these settings, though, the process has to stay under human
 control: it needs to be auditable, explainable, and robust, and it has to leave the final call to
 a person. That is also where regulators have landed. The recent supervisory debate on AI in
 finance is about governance, documentation, risk management, and human oversight, not about
@@ -80,19 +80,19 @@ a tactical tilt. Generic LLM assistants have the opposite weakness: they can sum
 narrative, but they offer no deterministic analytics, no traceability, no link to a firm's own
 models, and little workflow control.
 
-This project is run with an asset-management partner that wants a system to support exactly this
+This project is supported by an asset-management partner ('the partner') who wants a system to help with exactly this
 decision. We propose a reusable agentic platform for finance and test it on one concrete use
 case: auditable, sentiment-aware recommendations for a portfolio's bond/stock split, written up
 as an investment-committee report. Where possible, the platform incorporates some of the tools and
-models the firm already uses; where those cannot be shared or integrated directly, it aims to
+models the partner already uses; where those cannot be shared or integrated directly, it aims to
 reproduce similar behaviour through stand-ins with the same interface. On top of that it adds a
-sentiment-simulation layer and orchestrates the pipeline. It does not try to rebuild the firm's
+sentiment-simulation layer and orchestrates the pipeline. It does not try to rebuild the partner's
 quantitative stack.
 
 The system does not trade, move the allocation, give personalized advice, or stand in for the
 investment committee. It supports the people who do those things: gathering evidence, building
 and simulating sentiment scenarios, working out what a candidate allocation does to the
-portfolio, checking its own claims, and producing a recommendation memo with an audit trail
+portfolio, checking its own assertions, and producing a recommendation memo with an audit trail
 behind it.
 
 // ---------------------------------------------------------------------------
@@ -109,7 +109,7 @@ behind it.
 )[
   How can a reusable LangGraph-based agentic platform support an investment committee in
   producing auditable, sentiment-aware recommendations for a portfolio's dynamic bond/stock
-  allocation, by combining the firm's existing quantitative models, source-grounded market
+  allocation, by combining the partner's existing quantitative models, source-grounded market
   narratives, multi-agent sentiment simulation via a dedicated agentic engine, and deterministic portfolio
   risk analytics?
 ]
@@ -133,15 +133,15 @@ long-running, stateful agent workflows with persistence, durable execution, trac
 oversight @langgraph.
 
 One concrete workflow. On top of the platform we build a dynamic bond/stock allocation
-workflow. Given a sandbox portfolio, a mandate, the firm's signals, and a market context, it
+workflow. Given a sandbox portfolio, a mandate, the partner's signals, and a market context, it
 retrieves the relevant information, builds and simulates sentiment scenarios, computes the risk
 and return of candidate equity/bond mixes, and writes a memo recommending whether and how far to
 shift the split.
 
 Integration and simulation. We look at how the platform can plug into the partner's existing
 tools and models, and how a sentiment-simulation component fits alongside them. The aim is to
-incorporate some of the firm's models, signals, and feeds as callable tools where that is feasible,
-and otherwise to provide similar behaviour through stand-ins rather than reimplementing the firm's
+incorporate some of the partner's models, signals, and feeds as callable tools where that is feasible,
+and otherwise to provide similar behaviour through stand-ins rather than reimplementing the partner's
 stack. The exact engine is left open: the sentiment-simulation component is provided by an
 external multi-agent simulation engine such as OASIS, a multi-agent social simulation
 framework @oasis. We use
@@ -162,7 +162,7 @@ Evaluation. We evaluate the prototype on a post-cutoff backtest and against tran
 rather than a chat assistant: a static benchmark split (e.g. a fixed 60/40) and a traditional
 indicator-driven rule set built on classic signals such as equity valuations (P/E ratio or equity
 earnings yield versus bond yields), Fed rate-path expectations, and US labour-market data. The
-exact baseline is fixed after a short literature review and discussion with the practical partner's
+exact baseline is fixed after a short literature review and discussion with the partner's
 experts. Following Nexus @nexus, evaluation runs on data after the models' knowledge cutoff to
 avoid leakage, and looks at decision quality together with source grounding and auditability.
 
@@ -178,10 +178,10 @@ The prototype has seven main components.
   the workflow state, logs intermediate output, and enforces the human approval points. This is
   the reusable core of the platform.
 
-+ House-model and data integration layer. Where feasible, this incorporates some of the firm's
++ House-model and data integration layer. Where feasible, this incorporates some of the partner's
   quantitative models, signals, and data feeds as deterministic tools the platform can call. Where
   a model or feed cannot be shared or integrated directly, a stand-in with the same interface
-  provides similar behaviour. This is the piece that connects the platform to the firm's existing
+  provides similar behaviour. This is the piece that connects the platform to the partner's existing
   tools.
 
 + Research and RAG agent. Retrieves and summarizes relevant financial news, macro and rates
@@ -189,7 +189,7 @@ The prototype has seven main components.
   sources wherever possible.
 
 + Sentiment scenario agent. Turns retrieved information and user-defined themes into structured
-  sentiment scenarios for the equity/bond decision: a risk-off rotation out of equities, a hawkish
+  sentiment scenarios for the equity/bond decision: for example a risk-off rotation out of equities, a hawkish
   central-bank surprise, a growth scare, weak credit sentiment, a geopolitical escalation, or a
   move away from high-duration assets.
 
@@ -206,7 +206,7 @@ The prototype has seven main components.
   a transparent reference allocator, but any optimization stays secondary to the decision-support
   framing.
 
-+ Validation, reporting, and audit layer. A validation agent flags unsupported claims, separates
++ Validation, reporting, and audit layer. A validation agent flags unsupported assertions, separates
   fact from assumption, notes the limitations, and drafts the committee memo. The audit layer
   records sources, tool calls (including which house models ran), model versions, scenario and
   simulation assumptions, intermediate outputs, validation checks, and human approvals.
@@ -287,7 +287,7 @@ What we measure. On each window we compare the proposed tilts with the baselines
 of risk-adjusted and stability measures, for example realized volatility, maximum drawdown, a
 Sharpe-type ratio, and the directional hit rate of the tilt. We also check that the memo is
 well-grounded: each material claim should trace through the audit bundle to a source, a tool
-output, or human input. Finally, the partner and supervisors give a short human judgment of whether
+output, or human input. Finally, the partner's supervisors give a short human judgment of whether
 the memo is committee-ready.
 
 // ---------------------------------------------------------------------------
@@ -300,7 +300,7 @@ The project does not cover live trading, allocation execution, personalized advi
 production-grade compliance, and it uses public, synthetic, or sandbox/anonymized data. The
 prototype is decision support for the investment committee, not an autonomous system. The scope is
 deliberately narrow: one platform and one evaluated workflow (the bond/stock split), though the
-platform is designed to extend to other finance workflows later.
+platform is designed to extend to other finance workflows later (e.g. commodities).
 
 On the sentiment simulation, the default path is a minimal internal adapter we write ourselves,
 with an external agentic-engine integration (such as OASIS) treated as an optional, isolated
