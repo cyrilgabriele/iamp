@@ -1,2 +1,2 @@
-# iamp
-IAMP @ HSG
+# imp
+IMP @ HSG
