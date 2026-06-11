@@ -1,0 +1,14 @@
+flowchart LR
+    A[Point-in-time market data<br/>prices, returns, yields] --> O[Orchestrator]
+    B[Macro vintage store<br/>ALFRED/FRED real-time periods] --> O
+    C[Timestamped filings archive<br/>EDGAR submissions history] --> O
+    D[Timestamped news archive<br/>GDELT or licensed vendor archive] --> O
+    E[Quant signal engines<br/>valuation, carry, momentum, risk] --> O
+    O --> P[Evidence pack with source IDs and timestamps]
+    P --> Q[Allocation policy layer]
+    P --> R[LLM memo layer]
+    Q --> S[Machine-readable weights JSON]
+    R --> T[Timestamped investment memo]
+    S --> U[Human review and approval]
+    T --> U
+    U --> V[Publish research memo]

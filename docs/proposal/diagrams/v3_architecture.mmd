@@ -1,0 +1,15 @@
+flowchart LR
+    N[Numerical inputs<br/>Quant models, market data, macro signals] --> S1[Stage 1: Evidence summary]
+    T[Text-based inputs<br/>News and sentiment sources] --> S1
+
+    S1 --> E[Structured overview<br/>Timestamped evidence summary]
+    E --> S2[Stage 2: LLM report generation]
+
+    S2 --> R[Investment report<br/>Rationale, risks, scenarios]
+    S2 --> D[Machine-readable decision<br/>Stock/bond weights and confidence]
+
+    R --> H[Human review]
+    D --> H
+    H --> P[Paper portfolio evaluation]
+    P --> B[Benchmark comparison<br/>50/50 and 60/40]
+    B --> M[Evaluation metrics<br/>Return, Sharpe, turnover, drawdown]

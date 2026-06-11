@@ -1,0 +1,24 @@
+flowchart LR
+    A[Point-in-time data sources] --> B[Stage 1: Evidence generation]
+
+    A1[Market data<br/>Equity and bond returns] --> B
+    A2[Macro and rates data<br/>Inflation, yields, policy rates] --> B
+    A3[Alpha Vantage sentiment<br/>News sentiment signal] --> B
+
+    B --> C[Quantitative models<br/>Signals and candidate allocation]
+    C --> D[Structured evidence pack<br/>No future data, fixed schema]
+
+    D --> E[Stage 2: Report generation<br/>Claude 3.5 Sonnet]
+    E --> F[Investment report<br/>Rationale, risks, scenarios]
+    E --> G[Machine-readable decision<br/>Stock/bond weights and confidence]
+
+    G --> H[Paper portfolio evaluation]
+    H --> I[Compare against benchmarks]
+
+    J[50/50 allocation<br/>DeMiguel-style 1/N] --> I
+    K[60/40 allocation<br/>Traditional policy benchmark] --> I
+
+    I --> L[Evaluation metrics<br/>Return, Sharpe, CEQ, turnover, drawdown]
+
+    M[Privacy-sensitive deployment option] -.-> N[Self-hosted Llama model]
+    N -. replaces .-> E
