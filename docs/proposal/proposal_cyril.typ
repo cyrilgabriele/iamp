@@ -1,8 +1,5 @@
-// A Reusable Agentic Platform for Auditable, Sentiment-Aware Dynamic Asset Allocation
-// Project proposal (Typst source)
-
 #set document(
-  title: "A Reusable Agentic Platform for Auditable, Sentiment-Aware Dynamic Asset Allocation",
+  title: "A Reusable Agentic Platform for Sentiment-Aware Dynamic Asset Allocation",
   author: ("Cyril Gabriele", "Gian Seifert"),
 )
 
