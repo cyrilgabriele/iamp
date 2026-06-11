@@ -75,6 +75,14 @@ Generic LLM assistants have the opposite weakness: they can summarize narratives
 provide deterministic analytics, point-in-time traceability, or a controlled link to an asset
 manager's existing models.
 
+Existing published work already covers financial LLM platforms, LLM-based trading agents,
+financial report-generation systems, and broader agentic asset-allocation or news-to-portfolio
+pipelines @finrobot @finmem @tradingagents @finteam @self-driving-portfolio @cn-buzz2portfolio.
+However, to the best of our knowledge, this literature has not yet addressed the narrower workflow
+targeted here: a non-trading, point-in-time, auditable stock/bond allocation memo system that
+combines deterministic quantitative and sentiment evidence with a constrained LLM
+report-generation layer.
+
 This project proposes a controlled two-stage system for an asset-management partner. First,
 numerical and sentiment inputs are converted into a timestamped evidence summary. Second, an LLM
 uses that summary to generate an investment report and a machine-readable stock/bond allocation
