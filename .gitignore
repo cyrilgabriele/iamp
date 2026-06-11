@@ -227,3 +227,6 @@ CLAUDE.md
 .claude/
 docs/superpowers/
 .mcp.json
+
+# Local files (not for GitHub)
+local_files/
