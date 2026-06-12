@@ -240,6 +240,8 @@ interest-rate and yield-curve information, and macro-financial indicators where 
 available in point-in-time form. The text-based side is limited to one controlled sentiment source,
 (i.e. Alpha Vantage, or any other sentiment data provider), so that the provenance and timing of the input can be audited @alpha-vantage.
 
+The LLM evaluation, such as bias and performance, is out of scope. We will focus on one model that meets our technical needs, such as self-hosting versus API calls, among others. 
+
 The system generates an investment report and a machine-readable allocation decision, but it does
 not trade. It does not create orders, execute transactions, select individual securities, or
 optimize an unconstrained portfolio. The LLM is used only in the report-generation stage and works
