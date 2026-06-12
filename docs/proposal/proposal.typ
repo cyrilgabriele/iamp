@@ -1,8 +1,5 @@
-// A Reusable Agentic Platform for Auditable, Sentiment-Aware Dynamic Asset Allocation
-// Project proposal (Typst source)
-
 #set document(
-  title: "A Reusable Agentic Platform for Auditable, Sentiment-Aware Dynamic Asset Allocation",
+  title: "A Reusable Agentic Platform for Sentiment-Aware Dynamic Asset Allocation",
   author: ("Cyril Gabriele", "Gian Seifert"),
 )
 
@@ -63,38 +60,31 @@
 
 = Motivation
 
-Banks and asset managers are turning to AI to help analysts, portfolio managers, and risk teams
-get through information-heavy work. In these settings, though, the process has to stay under human
-control: it needs to be auditable, explainable, and robust, and it has to leave the final call to
-a person. That is also where regulators have landed. The recent supervisory debate on AI in
-finance is about governance, documentation, risk management, and human oversight, not about
-handing decisions to a model @reuters-banks @eu-ai-act @reuters-eba.
+Banks and asset managers increasingly use AI to support information-heavy work, but financial
+decisions still require governance, documentation, risk control, and human oversight
+@reuters-banks @eu-ai-act @reuters-eba. This is especially relevant for dynamic stock/bond
+allocation, since the high-level split between equities and bonds drives much of a portfolio's
+risk and return @brinson.
 
-The split between stocks and bonds is one of the biggest decisions an asset manager makes. That
-single high-level allocation drives most of a portfolio's risk and return, and many firms revisit
-it on a regular schedule (a dynamic, or tactical, allocation process), using quantitative
-signals (valuations, momentum, macro and rates data, risk models) together with a read on the
-prevailing market narrative. Quantitative models handle the measurable side well. What they
-rarely capture is how a shift in narrative, news sentiment, or market attention should feed into
-a tactical tilt. Generic LLM assistants have the opposite weakness: they can summarize a
-narrative, but they offer no deterministic analytics, no traceability, no link to a firm's own
-models, and little workflow control.
+Traditional quantitative models can process valuations, momentum, macro data, rates, and risk
+indicators, but they usually do not incorporate text-based market sentiment in an auditable way.
+Generic LLM assistants have the opposite weakness: they can summarize narratives, but they do not
+provide deterministic analytics, point-in-time traceability, or a controlled link to an asset
+manager's existing models.
 
-This project is supported by an asset-management partner ('the partner') who wants a system to help with exactly this
-decision. We propose a reusable agentic platform for finance and test it on one concrete use
-case: auditable, sentiment-aware recommendations for a portfolio's bond/stock split, written up
-as an investment-committee report. Where possible, the platform incorporates some of the tools and
-models the partner already uses; where those cannot be shared or integrated directly, it aims to
-reproduce similar behaviour through stand-ins with the same interface. On top of that it adds a
-sentiment-simulation layer and orchestrates the pipeline. It does not try to rebuild the partner's
-quantitative stack.
+Existing published work already covers financial LLM platforms, LLM-based trading agents,
+financial report-generation systems, and broader agentic asset-allocation or news-to-portfolio
+pipelines @finrobot @finmem @tradingagents @finteam @self-driving-portfolio @cn-buzz2portfolio.
+However, to the best of our knowledge, this literature has not yet addressed the narrower workflow
+targeted here: a non-trading, point-in-time, auditable stock/bond allocation memo system that
+combines deterministic quantitative and sentiment evidence with a constrained LLM
+report-generation layer.
 
-The system does not trade, move the allocation, give personalized advice, or stand in for the
-investment committee. It supports the people who do those things: gathering evidence, building
-and simulating sentiment scenarios, working out what a candidate allocation does to the
-portfolio, checking its own assertions, and producing a recommendation memo with an audit trail
-behind it.
-
+This project proposes a controlled two-stage system for an asset-management partner. First,
+numerical and sentiment inputs are converted into a timestamped evidence summary. Second, an LLM
+uses that summary to generate an investment report and a machine-readable stock/bond allocation
+decision. The system does not trade, execute allocation changes, or replace the investment
+committee; it supports the people making the decision.
 // ---------------------------------------------------------------------------
 // 2. Applied Research Question
 // ---------------------------------------------------------------------------
@@ -107,16 +97,10 @@ behind it.
   radius: 2pt,
   width: 100%,
 )[
-  How can a reusable LangGraph-based agentic platform support an investment committee in
-  producing auditable, sentiment-aware recommendations for a portfolio's dynamic bond/stock
-  allocation, by combining the partner's existing quantitative models, source-grounded market
-  narratives, multi-agent sentiment simulation via a dedicated agentic engine, and deterministic portfolio
-  risk analytics?
+  To what extent can an LLM-based report-generation layer, operating only on point-in-time quantitative, macro-financial, and sentiment evidence, support dynamic stock-bond allocation decisions relative to naive 50/50 @demiguel and conventional 60/40 benchmarks?
 ]
 
-This is an applied question, not a purely academic one. The point is to build and evaluate a
-working prototype, and to see whether agentic AI can be useful, controllable, and inspectable in
-a realistic allocation workflow the partner actually cares about.
+This is an applied question, not a purely academic one. The point is to build and evaluate a working prototype, and to see whether agentic AI can be useful, controllable, and inspectable in a realistic allocation workflow the partner actually cares about.
 
 // ---------------------------------------------------------------------------
 // 3. Project Objectives
@@ -124,47 +108,49 @@ a realistic allocation workflow the partner actually cares about.
 
 = Project Objectives
 
-The project has five objectives.
+== Objective 1: Build a controlled two-stage evidence-to-report pipeline
 
-A reusable platform. We design an agentic platform for financial workflows that handles
-orchestration, state, tool use, memory, validation, and human-in-the-loop control, and that can
-be extended beyond the allocation case. LangGraph fits well here, since it is built for
-long-running, stateful agent workflows with persistence, durable execution, tracing, and human
-oversight @langgraph.
+Develop a reproducible pipeline in which deterministic tools first generate a structured evidence pack, and the LLM then transforms that evidence into a standardized allocation report. The LLM must not freely browse, trade, or invent unsupported data.
 
-One concrete workflow. On top of the platform we build a dynamic bond/stock allocation
-workflow. Given a sandbox portfolio, a mandate, the partner's signals, and a market context, it
-retrieves the relevant information, builds and simulates sentiment scenarios, computes the risk
-and return of candidate equity/bond mixes, and writes a memo recommending whether and how far to
-shift the split.
+#block(
+  fill: rgb("#f7f7f4"),
+  inset: (x: 12pt, y: 10pt),
+  radius: 2pt,
+  width: 100%,
+)[
+  *Success criterion:* For every rebalancing date, the system produces:
 
-Integration and simulation. We look at how the platform can plug into the partner's existing
-tools and models, and how a sentiment-simulation component fits alongside them. The aim is to
-incorporate some of the partner's models, signals, and feeds as callable tools where that is feasible,
-and otherwise to provide similar behaviour through stand-ins rather than reimplementing the partner's
-stack. The exact engine is left open: the sentiment-simulation component is provided by an
-external multi-agent simulation engine such as OASIS, a multi-agent social simulation
-framework @oasis. We use
-simulation cautiously: not to forecast prices or returns, but to model how sentiment spreads, how
-stakeholders react, and what second-order effects a narrative shift might have. We keep it an
-optional, isolated component, with a small internal adapter we write ourselves as the default.
+  - a structured evidence pack,
+  - a human-readable investment report,
+  - a machine-readable allocation decision,
+  - a record of the model, prompt, data sources, and generation settings.
+]
 
-Reasoning module. The platform needs a reasoning step that turns the gathered evidence into a
-bounded _outlook_: a view on the bond/stock tilt with explicit uncertainty that feeds the
-deterministic analytics. In its basic form this is a single step. If time allows, we extend it
-with the macro/micro decomposition from the Nexus forecasting framework @nexus, where a macro step
-reads the prevailing regime and a micro step weighs near-term catalysts before the two are
-combined. Either way the module is an input to the analytics, not a price or return predictor and
-not the recommendation on its own, and we deliberately leave out the backtest-driven calibration
-loop.
+== Objective 2: Evaluate allocation recommendations against 50/50 and 60/40 benchmarks
 
-Evaluation. We evaluate the prototype on a post-cutoff backtest and against transparent baselines
-rather than a chat assistant: a static benchmark split (e.g. a fixed 60/40) and a traditional
-indicator-driven rule set built on classic signals such as equity valuations (P/E ratio or equity
-earnings yield versus bond yields), Fed rate-path expectations, and US labour-market data. The
-exact baseline is fixed after a short literature review and discussion with the partner's
-experts. Following Nexus @nexus, evaluation runs on data after the models' knowledge cutoff to
-avoid leakage, and looks at decision quality together with source grounding and auditability.
+Compare the system's recommended stock/bond allocations against two simple baselines: equal-weight 50/50 and conventional 60/40. The 50/50 baseline is the two-asset version of the naive 1/N benchmark used in the portfolio-choice literature @demiguel. The evaluation should focus on realized out-of-sample portfolio outcomes after each report date.
+
+#block(
+  fill: rgb("#f7f7f4"),
+  inset: (x: 12pt, y: 10pt),
+  radius: 2pt,
+  width: 100%,
+)[
+  *Success criterion:* The system is evaluated using a predefined set of performance metrics, including return, volatility, Sharpe ratio, drawdown, turnover, and transaction-cost-adjusted performance.
+]
+
+== Objective 3: Assess report quality, auditability, and leakage control
+
+Evaluate whether the generated reports are factually grounded in the evidence pack, internally consistent with the allocation recommendation, and protected against temporal leakage.
+
+#block(
+  fill: rgb("#f7f7f4"),
+  inset: (x: 12pt, y: 10pt),
+  radius: 2pt,
+  width: 100%,
+)[
+  *Success criterion:* Each report can be audited against the evidence pack, and no material factual claim should rely on information unavailable at the decision date.
+]
 
 // ---------------------------------------------------------------------------
 // 4. Proposed System
@@ -172,70 +158,17 @@ avoid leakage, and looks at decision quality together with source grounding and 
 
 = Proposed System
 
-The prototype has seven main components.
+The prototype follows a two-stage workflow. First, numerical inputs from the quant models and
+text-based inputs from sentiment sources are converted into a structured evidence summary. Second,
+an LLM uses that summary to generate the investment report and the machine-readable allocation
+decision. Appendix @app:example-report shows an illustrative example of the report format this
+workflow is meant to produce.
 
-+ Agentic orchestration layer. A LangGraph supervisor coordinates the specialized agents, holds
-  the workflow state, logs intermediate output, and enforces the human approval points. This is
-  the reusable core of the platform.
+#figure(
+  image("diagrams/v3_architecture.svg", width: 100%),
+  caption: [High-level two-stage workflow for the allocation report prototype.],
+) <fig:system-workflow>
 
-+ House-model and data integration layer. Where feasible, this incorporates some of the partner's
-  quantitative models, signals, and data feeds as deterministic tools the platform can call. Where
-  a model or feed cannot be shared or integrated directly, a stand-in with the same interface
-  provides similar behaviour. This is the piece that connects the platform to the partner's existing
-  tools.
-
-+ Research and RAG agent. Retrieves and summarizes relevant financial news, macro and rates
-  commentary, company filings, and market reports. Claims in the memo are linked back to their
-  sources wherever possible.
-
-+ Sentiment scenario agent. Turns retrieved information and user-defined themes into structured
-  sentiment scenarios for the equity/bond decision: for example a risk-off rotation out of equities, a hawkish
-  central-bank surprise, a growth scare, weak credit sentiment, a geopolitical escalation, or a
-  move away from high-duration assets.
-
-+ Sentiment-simulation module. Simulates how different market participants might react to an
-  initial narrative shock. The output is a structured picture of exposure (which sectors, factors,
-  or parts of the split are most affected) that feeds the reasoning rather than acting as a trading
-  signal or a return forecast. It runs through an integration with an external agentic engine such
-  as OASIS or, by default, a small internal adapter we write ourselves.
-
-+ Allocation analytics tools. Deterministic Python tools that compute the risk and return of
-  candidate bond/stock mixes: returns, volatility, drawdowns, VaR/CVaR, concentration, factor and
-  sector exposure, benchmark-relative metrics, scenario losses, and how sensitive the split is to
-  its inputs. Classical methods such as mean-variance optimization or risk parity @markowitz give
-  a transparent reference allocator, but any optimization stays secondary to the decision-support
-  framing.
-
-+ Validation, reporting, and audit layer. A validation agent flags unsupported assertions, separates
-  fact from assumption, notes the limitations, and drafts the committee memo. The audit layer
-  records sources, tool calls (including which house models ran), model versions, scenario and
-  simulation assumptions, intermediate outputs, validation checks, and human approvals.
-
-== Reasoning backbone
-
-At its core the reasoning step is a single component that produces the outlook: it reads the
-gathered evidence and returns a bounded view on the tilt with explicit uncertainty. It registers
-as one _outlook_ tool that feeds the deterministic analytics and the memo. It does not predict
-prices or returns, and it does not produce the recommendation by itself.
-
-As an optional extension, if time allows, we structure that step as the macro/micro split from
-Nexus @nexus:
-
-- A macro-reasoning step sets the broad regime behind the bond/stock decision (the rate cycle,
-  the growth-versus-inflation backdrop, and the overall risk-on/risk-off posture), which gives the
-  direction of the tilt.
-- A micro-reasoning step weighs near-term catalysts: data releases, central-bank meetings,
-  earnings, and the sentiment shocks the simulation module surfaces.
-- A synthesizer step merges the two into one view and spells out how they were weighed.
-
-Either way we leave the backtest-driven calibration loop out of scope.
-
-Each run produces two artifacts:
-
-+ an investment-committee allocation memo: whether and by how much to change the bond/stock
-  split, with the rationale, scenario analysis, and the assumptions and limits behind it;
-+ an audit bundle: the run configuration, data sources, tool and model calls, simulation
-  assumptions, validation results, a claim-to-evidence matrix, and the recorded human approvals.
 
 // ---------------------------------------------------------------------------
 // 5. Expected Deliverables
@@ -243,23 +176,18 @@ Each run produces two artifacts:
 
 = Expected Deliverables
 
-The list is trimmed to what a working, evaluable prototype actually needs:
+The project will deliver a working prototype and evaluation package for the two-stage workflow
+shown in @fig:system-workflow. The deliverables are:
 
-- the reusable agentic platform (LangGraph orchestration: workflow state, tool registry,
-  validation, human-in-the-loop control, and audit logging);
-- the dynamic bond/stock allocation workflow built on the platform, incorporating the partner's
-  models and data where feasible (or stand-ins with the same interface), producing the committee
-  memo and its audit bundle;
-- deterministic allocation analytics tools, with tests;
-- the reasoning module that produces the bounded outlook, with an optional macro/micro split
-  inspired by Nexus @nexus (no calibration) if time allows;
-- the sentiment-simulation component, either an external agentic-engine integration (e.g. OASIS)
-  or, by default, a minimal internal adapter we write ourselves;
-- the evaluation: a post-cutoff backtest harness, the two baselines (static benchmark and
-  traditional indicator-based allocation), and the comparison against the platform, with component
-  ablations and reasoning-quality results;
-- a final report covering architecture, integration, evaluation, limitations, governance, and
-  extendability.
+- the two-stage allocation-report pipeline;
+- the structured evidence-summary format;
+- the generated investment-report template, illustrated in Appendix @app:example-report;
+- the machine-readable allocation-decision format;
+- the audit log covering data sources, prompts, model settings, generated outputs, and run
+  metadata;
+- the evaluation harness comparing the recommendations against 50/50 and 60/40 baselines;
+- the final written report describing the architecture, implementation, evaluation results,
+  limitations, and possible extensions.
 
 // ---------------------------------------------------------------------------
 // 6. Evaluation Plan
@@ -267,28 +195,36 @@ The list is trimmed to what a working, evaluable prototype actually needs:
 
 = Evaluation Plan
 
-The evaluation is kept light. Backtests are used to sanity-check and stress the decision logic, not
-to claim investment performance or present a tradeable strategy.
+The evaluation follows an out-of-sample backtesting design, following the portfolio-choice
+benchmarking logic used by DeMiguel, Garlappi, and Uppal @demiguel. The implementation model is
+chosen so that its knowledge cut-off date is known. The backtest period then starts strictly after
+that cut-off date, so the model cannot rely on memorized information about the evaluated market
+period. At each rebalancing date, the system may use only information that would have been
+available at that date. The numerical inputs, sentiment input, evidence summary, prompt
+configuration, generated report, and allocation decision are all fixed before the next-period
+returns are observed. This prevents the LLM or the evaluation code from using information from the
+future.
 
-Baselines. The platform is compared against two transparent baselines:
+For each monthly or quarterly rebalancing date $t$, the pipeline produces a recommended
+stock/bond allocation $w_t$. This allocation is then held over the next evaluation interval
+$(t, t+1]$. The realized portfolio return of the system is compared with two static benchmark
+portfolios over the same interval: a 50/50 stock/bond allocation and a 60/40 stock/bond allocation.
+The interval-level benchmark-relative return differences are recorded as:
 
-+ a static benchmark allocation, a fixed split such as 60/40, standing in for taking no active
-  view; and
-+ a traditional allocation baseline, a deterministic rule set that maps classic indicators (for
-  example equity valuations, Fed rate-path expectations, and US labour-market data) to a tilt. Its
-  exact specification follows a short literature review and discussion with the practical partner's
-  experts, and is frozen before any results are looked at, so the comparison stays fair.
+$
+  Delta_("50/50", t+1) &= R_("dynamic", t+1) - R_("50/50", t+1) \
+  Delta_("60/40", t+1) &= R_("dynamic", t+1) - R_("60/40", t+1)
+$
 
-Post-cutoff backtesting. Following Nexus @nexus, evaluation runs only on data after the language
-models' knowledge cutoff, so a model cannot simply recall a known outcome. This is the main leakage
-control.
+The report-generation layer is evaluated separately from the economic results. For a sample of
+generated reports, each material claim is checked against the evidence summary and its source
+metadata. The evaluation records whether the report is grounded in the available evidence,
+internally consistent with the machine-readable allocation decision, and free from temporal
+leakage.
 
-What we measure. On each window we compare the proposed tilts with the baselines on a small set
-of risk-adjusted and stability measures, for example realized volatility, maximum drawdown, a
-Sharpe-type ratio, and the directional hit rate of the tilt. We also check that the memo is
-well-grounded: each material claim should trace through the audit bundle to a source, a tool
-output, or human input. Finally, the partner's supervisors give a short human judgment of whether
-the memo is committee-ready.
+The final assessment therefore has two parts: whether the allocation recommendations are
+competitive with the 50/50 and 60/40 baselines out of sample, and whether the reports are
+auditable, timely, and useful as decision-support documents.
 
 // ---------------------------------------------------------------------------
 // 7. Scope and Limitations
@@ -296,20 +232,96 @@ the memo is committee-ready.
 
 = Scope and Limitations
 
-The project does not cover live trading, allocation execution, personalized advice, or
-production-grade compliance, and it uses public, synthetic, or sandbox/anonymized data. The
-prototype is decision support for the investment committee, not an autonomous system. The scope is
-deliberately narrow: one platform and one evaluated workflow (the bond/stock split), though the
-platform is designed to extend to other finance workflows later (e.g. commodities).
+The project is deliberately limited to one decision-support workflow: the stock/bond allocation
+report. It covers dynamic allocation (monthly or quarterly) recommendations between equities and bonds,
+based on a controlled evidence summary that combines deterministic quantitative signals with
+text-based sentiment input. The numerical side includes market risk and return indicators,
+interest-rate and yield-curve information, and macro-financial indicators where these are
+available in point-in-time form. The text-based side is limited to one controlled sentiment source,
+(i.e. Alpha Vantage, or any other sentiment data provider), so that the provenance and timing of the input can be audited @alpha-vantage.
 
-On the sentiment simulation, the default path is a minimal internal adapter we write ourselves,
-with an external agentic-engine integration (such as OASIS) treated as an optional, isolated
-experiment. The engine is not a price-prediction engine; its role is to generate structured
-sentiment and stress scenarios that
-complement the deterministic analytics.
+The LLM evaluation, such as bias and performance, is out of scope. We will focus on one model that meets our technical needs, such as self-hosting versus API calls, among others. 
+
+The system generates an investment report and a machine-readable allocation decision, but it does
+not trade. It does not create orders, execute transactions, select individual securities, or
+optimize an unconstrained portfolio. The LLM is used only in the report-generation stage and works
+from the previously prepared evidence summary. It is not allowed to browse freely, read arbitrary
+news, call discretionary tools, or invent unsupported data. The concrete model can be adapted to
+partner constraints, including a self-hosted option if privacy or deployment requirements demand
+it, but model comparison and fine-tuning are outside the first evaluation phase.
+
+The recommendations are compared against the 50/50 and
+60/40 stock/bond baselines, using economic performance measures and structured report-quality
+checks. The project does not attempt a broad benchmark study, multi-asset allocation, personalized
+financial advice, production-grade compliance approval, or live investment operations. The
+prototype is therefore an auditable committee-support system, not an autonomous investment system.
 
 // ---------------------------------------------------------------------------
 // References
 // ---------------------------------------------------------------------------
 
+#pagebreak()
+
 #bibliography("references.bib", title: "References", style: "ieee")
+
+// ---------------------------------------------------------------------------
+// Appendix
+// ---------------------------------------------------------------------------
+
+#pagebreak()
+
+= Appendix: Example Generated Allocation Report <app:example-report>
+
+The following example is illustrative. It shows the intended shape of the generated report, not an
+actual investment recommendation.
+
+#block(
+  fill: rgb("#f7f7f4"),
+  inset: (x: 12pt, y: 10pt),
+  radius: 2pt,
+  width: 100%,
+)[
+  *Investment Committee Allocation Report*\
+  *Decision date:* 2027-03-31\
+  *Evaluation horizon:* Next monthly rebalancing interval\
+  *Universe:* Global equities and investment-grade bonds\
+  *Current benchmark:* 60/40 stock/bond allocation
+
+  *Recommended allocation*\
+  The system recommends a moderate underweight to equities for the next interval:
+
+  - stocks: 55%;
+  - bonds: 45%;
+  - confidence: medium.
+
+  *Evidence summary*\
+  The numerical evidence points to a less supportive risk environment than in the previous
+  rebalancing window. Equity momentum remains positive but has weakened, valuation indicators are
+  above their long-run median, and realized volatility has increased. Yield-curve and rates data
+  suggest that duration risk remains material, but the bond allocation still improves portfolio
+  stability under the current risk model.
+
+  The text-based sentiment input is mixed but slightly risk-off. Market news sentiment is less
+  positive than in the previous window, with recurring references to tighter financial conditions,
+  slower earnings growth, and uncertainty around central-bank communication. No single article or
+  sentiment signal is treated as decisive; the report uses the sentiment input only as supporting
+  evidence alongside the numerical indicators.
+
+  *Rationale*\
+  The recommended 55/45 allocation keeps the portfolio close to the conventional 60/40 benchmark
+  while reducing equity exposure in response to weaker sentiment and higher measured risk. A larger
+  shift is not recommended because the evidence summary does not show a severe deterioration in
+  macro or market conditions, and the equity signal remains positive on some measures.
+
+  *Main risks*\
+  The recommendation may underperform the 60/40 benchmark if equity markets continue to rally or
+  if the risk-off sentiment proves temporary. It may also underperform the 50/50 benchmark if bond
+  yields rise sharply during the holding period. The allocation should therefore be treated as a
+  controlled tilt, not as a high-conviction market-timing signal.
+
+  *Audit notes*\
+  The report was generated from a timestamped evidence summary. The LLM did not browse the web,
+  call additional tools, or use data outside the evidence pack. The stored audit bundle contains
+  the source references, model identifier, prompt version, generation settings, and the
+  machine-readable allocation decision.
+]
