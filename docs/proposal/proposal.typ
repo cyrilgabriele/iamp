@@ -97,7 +97,7 @@ committee; it supports the people making the decision.
   radius: 2pt,
   width: 100%,
 )[
-  #text(fill: orange)[Does an LLM-based stock-bond allocation strategy improve out-of-sample performance relative to naive 50/50 @demiguel and conventional 60/40 benchmarks?]
+  #text(fill: orange)[How does an LLM-based stock-bond allocation strategy perform out of sample relative to naive 50/50 @demiguel and conventional 60/40 benchmarks?]
 ]
 #text(fill: orange)[The strategy uses only point-in-time quantitative, macro-financial, and sentiment evidence, and translates the LLM-generated allocation report into portfolio weights through a pre-specified mechanical rule. Performance is measured using Sharpe ratio, certainty-equivalent return, and turnover-adjusted returns.]
 
@@ -138,7 +138,7 @@ Compare the system's recommended stock/bond allocations against two simple basel
   radius: 2pt,
   width: 100%,
 )[
-  *Success criterion:* The system is evaluated using a predefined set of performance metrics, including return, volatility, Sharpe ratio, drawdown, turnover, and transaction-cost-adjusted performance.
+  *Success criterion:* The system is evaluated using a predefined set of performance metrics, including return, volatility, Sharpe ratio, #text(fill: orange)[certainty-equivalent return,] drawdown, turnover, and transaction-cost-adjusted performance.
 ]
 
 == Objective 3: Assess report quality, auditability, and leakage control
@@ -165,6 +165,7 @@ text-based inputs from sentiment sources are converted into a structured evidenc
 an LLM uses that summary to generate the investment report and the machine-readable allocation
 decision. Appendix @app:example-report shows an illustrative example of the report format this
 workflow is meant to produce.
+#text(fill: orange)[The exact translation from the LLM output into portfolio weights will be specified ex ante as a reproducible mechanical rule before the evaluation is run.]
 
 #figure(
   image("diagrams/v3_architecture.svg", width: 100%),
@@ -242,7 +243,7 @@ interest-rate and yield-curve information, and macro-financial indicators where 
 available in point-in-time form. The text-based side is limited to one controlled sentiment source,
 (i.e. Alpha Vantage, or any other sentiment data provider), so that the provenance and timing of the input can be audited @alpha-vantage. #text(fill: red)[We verify that retrieved sentiment records reflect the information available at each decision date, rather than any later revision, to avoid look-ahead bias.]
 
-The LLM evaluation, such as bias and performance, is out of scope. We will focus on one model that meets our technical needs, such as self-hosting versus API calls, among others. 
+#text(fill: orange)[A broad evaluation of different LLMs, model bias, or fine-tuning strategies is out of scope. The project uses one fixed model configuration for the backtest.]
 
 The system generates an investment report and a machine-readable allocation decision, but it does
 not trade. It does not create orders, execute transactions, select individual securities, or
