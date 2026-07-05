@@ -97,8 +97,10 @@ committee; it supports the people making the decision.
   radius: 2pt,
   width: 100%,
 )[
-  To what extent can an LLM-based report-generation layer, operating only on point-in-time quantitative, macro-financial, and sentiment evidence, support dynamic stock-bond allocation decisions relative to naive 50/50 @demiguel and conventional 60/40 benchmarks?
+  #text(fill: orange)[Does an LLM-based stock-bond allocation strategy improve out-of-sample performance relative to naive 50/50 @demiguel and conventional 60/40 benchmarks?]
 ]
+#text(fill: orange)[The strategy uses only point-in-time quantitative, macro-financial, and sentiment evidence, and translates the LLM-generated allocation report into portfolio weights through a pre-specified mechanical rule. Performance is measured using Sharpe ratio, certainty-equivalent return, and turnover-adjusted returns.]
+
 
 This is an applied question, not a purely academic one. The point is to build and evaluate a working prototype, and to see whether agentic AI can be useful, controllable, and inspectable in a realistic allocation workflow the partner actually cares about.
 
@@ -224,9 +226,7 @@ metadata. The evaluation records whether the report is grounded in the available
 internally consistent with the machine-readable allocation decision, and free from temporal
 leakage.
 
-The final assessment therefore has two parts: whether the allocation recommendations are
-competitive with the 50/50 and 60/40 baselines out of sample, and whether the reports are
-auditable, timely, and useful as decision-support documents.
+#text(fill: orange)[The final assessment therefore has two parts: first, whether the pipeline produces traceable, point-in-time allocation recommendations without leakage; second, how those recommendations behave relative to the 50/50 and 60/40 benchmarks in an illustrative, statistically limited backtest.]
 
 // ---------------------------------------------------------------------------
 // 7. Scope and Limitations
