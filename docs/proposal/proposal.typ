@@ -97,9 +97,9 @@ committee; it supports the people making the decision.
   radius: 2pt,
   width: 100%,
 )[
-  #text(fill: orange)[How does an LLM-based stock-bond allocation strategy perform out of sample relative to naive 50/50 @demiguel and conventional 60/40 benchmarks?]
+  How does an LLM-based stock-bond allocation strategy perform out of sample relative to naive 50/50 @demiguel and conventional 60/40 benchmarks?
 ]
-#text(fill: orange)[The strategy uses only point-in-time quantitative, macro-financial, and sentiment evidence, and translates the LLM-generated allocation report into portfolio weights through a pre-specified mechanical rule. Performance is measured using Sharpe ratio, certainty-equivalent return, and turnover-adjusted returns.]
+The strategy uses only point-in-time quantitative, macro-financial, and sentiment evidence, and translates the LLM-generated allocation report into portfolio weights through a pre-specified mechanical rule. Performance is measured using Sharpe ratio, certainty-equivalent return, and turnover-adjusted returns.
 
 
 This is an applied question, not a purely academic one. The point is to build and evaluate a working prototype, and to see whether agentic AI can be useful, controllable, and inspectable in a realistic allocation workflow the partner actually cares about.
@@ -130,7 +130,7 @@ Develop a reproducible pipeline in which deterministic tools first generate a st
 
 == Objective 2: Evaluate allocation recommendations against 50/50 and 60/40 benchmarks
 
-Compare the system's recommended stock/bond allocations against two simple baselines: equal-weight 50/50 and conventional 60/40. The 50/50 baseline is the two-asset version of the naive 1/N benchmark used in the portfolio-choice literature @demiguel. The evaluation should focus on realized out-of-sample portfolio outcomes after each report date. #text(fill: red)[To isolate the LLM's contribution from the evidence pack itself, the system is also compared against a rule-based allocator that consumes the same evidence pack but applies a fixed decision rule instead of the LLM.]
+Compare the system's recommended stock/bond allocations against two simple baselines: equal-weight 50/50 and conventional 60/40. The 50/50 baseline is the two-asset version of the naive 1/N benchmark used in the portfolio-choice literature @demiguel. The evaluation should focus on realized out-of-sample portfolio outcomes after each report date. To isolate the LLM's contribution from the evidence pack itself, the system is also compared against a rule-based allocator that consumes the same evidence pack but applies a fixed decision rule instead of the LLM.
 
 #block(
   fill: rgb("#f7f7f4"),
@@ -138,7 +138,7 @@ Compare the system's recommended stock/bond allocations against two simple basel
   radius: 2pt,
   width: 100%,
 )[
-  *Success criterion:* The system is evaluated using a predefined set of performance metrics, including return, volatility, Sharpe ratio, #text(fill: orange)[certainty-equivalent return,] drawdown, turnover, and transaction-cost-adjusted performance.
+  *Success criterion:* The system is evaluated using a predefined set of performance metrics, including return, volatility, Sharpe ratio, certainty-equivalent return, drawdown, turnover, and transaction-cost-adjusted performance.
 ]
 
 == Objective 3: Assess report quality, auditability, and leakage control
@@ -165,7 +165,7 @@ text-based inputs from sentiment sources are converted into a structured evidenc
 an LLM uses that summary to generate the investment report and the machine-readable allocation
 decision. Appendix @app:example-report shows an illustrative example of the report format this
 workflow is meant to produce.
-#text(fill: orange)[The exact translation from the LLM output into portfolio weights will be specified ex ante as a reproducible mechanical rule before the evaluation is run.]
+The exact translation from the LLM output into portfolio weights will be specified ex ante as a reproducible mechanical rule before the evaluation is run.
 
 #figure(
   image("diagrams/v3_architecture.svg", width: 100%),
@@ -188,7 +188,7 @@ shown in @fig:system-workflow. The deliverables are:
 - the machine-readable allocation-decision format;
 - the audit log covering data sources, prompts, model settings, generated outputs, and run
   metadata;
-- the evaluation harness comparing the recommendations against 50/50 and 60/40 baselines#text(fill: red)[, plus a rule-based, no-LLM baseline using the same evidence pack];
+- the evaluation harness comparing the recommendations against 50/50 and 60/40 baselines, plus a rule-based, no-LLM baseline using the same evidence pack;
 - the final written report describing the architecture, implementation, evaluation results,
   limitations, and possible extensions.
 
@@ -219,7 +219,7 @@ $
   Delta_("60/40", t+1) &= R_("dynamic", t+1) - R_("60/40", t+1)
 $
 
-#text(fill: red)[With monthly or quarterly rebalancing, a single backtest period yields on the order of ten to thirty allocation decisions, too few to establish statistical significance. The performance comparisons are therefore treated as an illustrative check of the system's behavior rather than as a claim of outperformance.]
+With monthly or quarterly rebalancing, a single backtest period yields on the order of ten to thirty allocation decisions, too few to establish statistical significance. The performance comparisons are therefore treated as an illustrative check of the system's behavior rather than as a claim of outperformance.
 
 The report-generation layer is evaluated separately from the economic results. For a sample of
 generated reports, each material claim is checked against the evidence summary and its source
@@ -227,7 +227,7 @@ metadata. The evaluation records whether the report is grounded in the available
 internally consistent with the machine-readable allocation decision, and free from temporal
 leakage.
 
-#text(fill: orange)[The final assessment therefore has two parts: first, whether the pipeline produces traceable, point-in-time allocation recommendations without leakage; second, how those recommendations behave relative to the 50/50 and 60/40 benchmarks in an illustrative, statistically limited backtest.]
+The final assessment therefore has two parts: first, whether the pipeline produces traceable, point-in-time allocation recommendations without leakage; second, how those recommendations behave relative to the 50/50 and 60/40 benchmarks in an illustrative, statistically limited backtest.
 
 // ---------------------------------------------------------------------------
 // 7. Scope and Limitations
@@ -241,9 +241,9 @@ based on a controlled evidence summary that combines deterministic quantitative 
 text-based sentiment input. The numerical side includes market risk and return indicators,
 interest-rate and yield-curve information, and macro-financial indicators where these are
 available in point-in-time form. The text-based side is limited to one controlled sentiment source,
-(i.e. Alpha Vantage, or any other sentiment data provider), so that the provenance and timing of the input can be audited @alpha-vantage. #text(fill: red)[We verify that retrieved sentiment records reflect the information available at each decision date, rather than any later revision, to avoid look-ahead bias.]
+(i.e. Alpha Vantage, or any other sentiment data provider), so that the provenance and timing of the input can be audited @alpha-vantage. We verify that retrieved sentiment records reflect the information available at each decision date, rather than any later revision, to avoid look-ahead bias.
 
-#text(fill: orange)[A broad evaluation of different LLMs, model bias, or fine-tuning strategies is out of scope. The project uses one fixed model configuration for the backtest.]
+A broad evaluation of different LLMs, model bias, or fine-tuning strategies is out of scope. The project uses one fixed model configuration for the backtest.
 
 The system generates an investment report and a machine-readable allocation decision, but it does
 not trade. It does not create orders, execute transactions, select individual securities, or
@@ -251,7 +251,7 @@ optimize an unconstrained portfolio. The LLM is used only in the report-generati
 from the previously prepared evidence summary. It is not allowed to browse freely, read arbitrary
 news, call discretionary tools, or invent unsupported data. The concrete model can be adapted to
 partner constraints, including a self-hosted option if privacy or deployment requirements demand
-it, but model comparison and fine-tuning are outside the first evaluation phase. #text(fill: red)[The model version and generation settings (e.g., temperature zero) are fixed for the duration of the backtest so that results stay reproducible and unaffected by silent model updates.]
+it, but model comparison and fine-tuning are outside the first evaluation phase. The model version and generation settings (e.g., temperature zero) are fixed for the duration of the backtest so that results stay reproducible and unaffected by silent model updates.
 
 The recommendations are compared against the 50/50 and
 60/40 stock/bond baselines, using economic performance measures and structured report-quality
