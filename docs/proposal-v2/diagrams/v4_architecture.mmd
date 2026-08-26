@@ -1,0 +1,13 @@
+flowchart TB
+    subgraph S1["Stage 1: offline, deterministic"]
+        direction LR
+        N["Numerical inputs<br/>market, rates, macro"] --> ST[("Sealed point-in-time store<br/>value, as-of date, vintage date")]
+        T["Text inputs<br/>news and sentiment"] --> ST
+    end
+
+    ST --> TL["Constrained tool layer<br/>vintage filter, ladder rung"]
+    TL <--> AG["Stage 2: bounded agent loop<br/>briefing, retrieval, report,<br/>machine-readable decision, realized pack"]
+    ST --> C["Deterministic comparators<br/>C0 static, C1 risk-based, C2 composite"]
+
+    AG --> EV["Decision-level evaluation<br/>stability, equivalence, divergence, risk translation"]
+    C --> EV
