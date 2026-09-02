@@ -38,7 +38,7 @@
 
   #v(0.4em)
 
-  #text(size: 10pt, style: "italic")[Project Proposal — Revised Version]
+  #text(size: 10pt, style: "italic")[Project Proposal - Revised Version]
 
   #v(0.8em)
 
@@ -145,6 +145,8 @@ The final evidence set contains approximately five to eight signals covering bot
 
 No signal is selected using performance in the evaluation window.
 
+The textual evidence is drawn from a commercial sentiment feed with per-record publication timestamps, such as Alpha Vantage @alpha-vantage, so that provenance and timing remain auditable as the system is evaluated.
+
 == Information ladder <sec:ladder>
 
 The system is evaluated at increasing levels of information richness.
@@ -183,9 +185,9 @@ Its exact specification, including any parameters estimated exclusively from pre
 
 Two secondary benchmarks aid interpretation:
 
-- *C0 — Static:* constant 60/40 allocation;
-- *C1 — Risk-based:* allocation adjusted only for measured portfolio or equity risk;
-- *C2 — Primary composite:* deterministic aggregation of the complete quantitative evidence set.
+- *C0  Static:* constant 60/40 allocation;
+- *C1  Risk-based:* allocation adjusted only for measured portfolio or equity risk;
+- *C2  Primary composite:* deterministic aggregation of the complete quantitative evidence set.
 
 C0 answers whether the system moves at all. C1 indicates how much movement can be explained by simple risk scaling. C2 is the substantive comparator used for RQ2.
 
@@ -242,7 +244,7 @@ The ensemble size $k$ is fixed before the evaluation sample is analysed.
 
 == RQ2: Practical equivalence
 
-A materiality margin $delta$ is defined in percentage points of equity allocation and translated into portfolio-risk terms. The margin is supplied or validated by the practice partner and pre-registered before evaluation.
+A materiality margin $delta$ is defined in percentage points of equity allocation and translated into portfolio-risk terms.
 
 For each date:
 
@@ -335,8 +337,7 @@ Before the first evaluation run, the following are documented and frozen:
 - information-ladder definitions;
 - RQ3 state definitions;
 - risk model and scenario set;
-- model version, prompt, and generation settings;
-- statistical endpoints and analysis code.
+- model version and generation settings;
 
 The evidence set and primary comparator are frozen jointly with the practice partner before evaluation results are observed.
 

@@ -158,10 +158,10 @@ behaviour conditional on disagreement.
 
 ### 1.6 Versioned and hashed
 
-Three hashes go into the audit record: the store snapshot, the briefing, and the
-realized pack (briefing plus the full tool trace, see section 3.1). Together with the
-pinned model identifier, prompt version and generation settings, that is enough to
-reconstruct any recommendation after the fact.
+Four hashes go into the audit record: the substrate snapshot, the rung view the run was
+served from, the briefing, and the realized pack (briefing plus the full tool trace, see
+section 3.1). Together with the pinned model identifier, prompt version and generation
+settings, that is enough to reconstruct any recommendation after the fact.
 
 Sentiment and any API-sourced text is retrieved once with hard time bounds and written
 into the frozen store, never re-fetched at run time.
@@ -418,6 +418,188 @@ rather than assumed.
 
 ---
 
+## 2b. Proposed candidate set for the partner — v2, 16 signals
+
+**Status:** draft to send to Lennart, 2 Sep 2026. This is the *candidate* set, not the
+frozen set. The proposal commits to roughly five to eight signals in the final evidence
+pack (`proposal-v2.typ`, section "Sealed point-in-time evidence store"), so this list is
+deliberately wider than the freeze and expects to lose half its rows.
+
+**v2 changes over v1:** news sentiment promoted from L3 to L1 as a numeric signal
+(row 15); EPU added as row 16; SLOOS added as row 8.
+
+### Why not the Welch-Goyal shortlist
+
+An earlier draft proposed twelve variables, eight of them from the Welch-Goyal predictor
+set: D/P, E/P, net equity issuance, stock variance, short rate, term spread, default
+spread, inflation, plus Baker-Wurgler sentiment and Cochrane-Piazzesi. That set has three
+problems for this project specifically.
+
+**Frequency.** Decisions are weekly over a post-cutoff window of roughly 10-30 dates.
+D/P, E/P, net issuance and Baker-Wurgler update monthly at best and several are revised.
+Across the evaluation window they move a handful of times. A signal that is near-constant
+over the window cannot generate divergence between the LLM and C2, so it contributes
+nothing to RQ2 or RQ3 no matter how good its long-horizon record is.
+
+**The missing variable.** The realized stock-bond correlation is absent. A 60/40
+benchmark assumes bonds hedge equities; that assumption flipped in 2022. Campbell,
+Pflueger & Viceira (2020) give the theory, Brixton et al. (2023) the operational version.
+It is the most defensible reason a dynamic stock/bond system should exist at all, and it
+is daily and PIT-clean.
+
+**Inverted weights.** Three valuation variables against one risk variable, when
+volatility is the one thing in this literature that reliably forecasts. D/P, E/P and net
+issuance are also three views of one valuation state, not three dimensions.
+
+The counter-argument offered — that pre-registration protects a set of known-weak
+predictors — is half right. Pre-registration protects against selecting on outcome. It
+does not substitute for selecting on criteria, and pre-registering twelve predictors that
+Goyal, Welch & Zafirov (2024) already show fail out of sample pre-registers a null result.
+Section 0 of this document is the fuller version of that argument.
+
+### Selection criteria applied
+
+Every row below is scored on the five criteria named in the proposal, not on citation
+count alone:
+
+1. economic rationale (why it should move a stock/bond weight);
+2. point-in-time availability at weekly decision frequency;
+3. publication lag;
+4. revision properties;
+5. historical coverage sufficient for expanding-window normalisation.
+
+No signal is selected using performance in the evaluation window.
+
+### Where text enters, and where it cannot
+
+Two rows are derived from news text. The rule governing them:
+
+**Raw text never reaches a decision.** An FOMC statement names the target range; a
+headline names the event. Either dates the pack instantly, and the whole evaluation rests
+on the model not knowing the date. Text therefore contributes *quantities with a hard
+publication timestamp*, never prose the model reads directly. This is the section 1.1
+principle applied to the text block.
+
+**We never generate narrative from our own numbers.** "Momentum is positive but
+weakening" carries no information the number lacks and hard-codes our thresholds into the
+pack. Both the LLM and C2 would then be reading our judgment rather than the evidence,
+which contaminates the comparison the project exists to make.
+
+Ladder placement that follows:
+
+| Rung | Text-related content |
+|---|---|
+| L1 | Numeric text-derived signals: rows 15 and 16. Consumed by C2 on equal terms. |
+| L2 | Reliability, dispersion, vintage and missingness metadata for those rows. |
+| L3 | Structured summaries written by template from anonymised quantities: topic shares, regime labels. No datable specifics, names or events. |
+| L4 | Raw current-window text, as the leakage diagnostic only. Never feeds a decision. |
+
+**Deferred on cost, not overlooked.** FOMC statement and minutes scoring (language change
+vs prior statement is the informative part), Beige Book tone, Treasury quarterly refunding
+statements (supply drives term premium, and nothing else on the list captures supply),
+aggregate earnings-call tone, 10-K risk-factor language change. Each has a clean timestamp
+and each is a separate ingestion project. Rows 15 and 16 were chosen because both are
+single API pulls: row 16 is already a FRED daily series, so it costs nothing beyond one
+more fetch. Ask Lennart whether any of the deferred sources already exists on the partner
+side.
+
+### The 16
+
+Blocks match section 2 of this document. `Rev.` is revision behaviour: **none** = as-of
+equals vintage; **vintage** = must come from ALFRED or an equivalent vintage store;
+**recomp.** = the published series is retroactively recomputed and the recomputation must
+be flagged in the record. History start years are indicative and still to be verified
+against each source.
+
+| # | Block | Signal | What it says | Source | Freq | Rev. | Hist. | Horizon | Grade |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | A Risk | Realized equity volatility, 21d and 63d | How turbulent equities actually are right now | derived from prices | D | none | index | 1m | strong |
+| 2 | A Risk | VIX level and expanding percentile | What the option market charges for equity insurance | FRED `VIXCLS` | D | none | 1990 | 1-3m | strong |
+| 3 | B Regime | Realized stock-bond correlation, 63d and 252d | Whether bonds are still hedging equities | derived from prices | D | none | index | 1-12m | strong |
+| 4 | B Regime | Core CPI YoY | Which inflation regime sets the correlation sign | FRED via ALFRED vintages | M | vintage | 1957 | 1-12m | strong (regime) |
+| 5 | B Regime | 5y5y forward breakeven | What the market expects inflation to be, daily and unrevised | FRED `T5YIFR` | D | none | 2003 | 1-12m | moderate |
+| 6 | B Credit | HY OAS, level and 3m change | How much extra yield risky borrowers must pay | FRED `BAMLH0A0HYM2` | D | none | 1996 | 1-12m | moderate-strong |
+| 7 | B Credit | Excess bond premium | Credit spread net of expected default, the part that predicts | Fed FEDS Notes | M | recomp. | 1973 | 3-12m | strong |
+| 8 | B Credit | SLOOS net % tightening, C&I standards | Whether banks are actually restricting credit, ahead of spreads | FRED (verify mnemonic, `DRTSCILM`) | Q | none | 1990 | 3-12m | moderate |
+| 9 | B Rates | Term spread 10y-3m | Steep, flat or inverted curve | FRED `T10Y3M` | D | none | 1982 | 6-18m | moderate |
+| 10 | B Rates | 3M Treasury bill yield | Policy stance and the risk-free alternative | FRED `DGS3MO` | D | none | 1981 | 1-12m | moderate |
+| 11 | C Carry | 10y nominal yield | Bond carry: starting yield mechanically drives long-horizon bond return | FRED `DGS10` | D | none | 1962 | 5-10y | strong |
+| 12 | C Valuation | CAPE yield minus 10y real yield | Equity valuation *after* adjusting for the real discount rate | Shiller + FRED `DFII10` | M | recomp. | 2003 | 1-5y | moderate |
+| 13 | D Trend | Equity trend: price vs 10-month SMA, and 12-1m return | Whether equities are trending, framed as drawdown control | prices | D/M | none | index | 1-6m | moderate |
+| 14 | D Trend | Bond 12-1m total return | Whether duration is trending | prices | M | none | index | 1-12m | contested |
+| 15 | E Text | News tone change and article volume vs normal | Whether the news flow has turned, and how unusual it is | Alpha Vantage `NEWS_SENTIMENT` | D | none, timestamped | ~2022 | 1-3m | short-history |
+| 16 | E Text | Economic Policy Uncertainty | Policy uncertainty in the press; fast read on inflation-led vs growth-led shocks | FRED `USEPUINDXD` | D | none | 1985 | 1-12m | moderate |
+
+**Notes that belong on the table.**
+
+- **Row 15 is numeric and belongs in L1.** `NEWS_SENTIMENT` returns
+  `overall_sentiment_score`, `ticker_sentiment_score` and `relevance_score` per article
+  with `time_published`, so it aggregates to a weekly figure C2 can consume on equal
+  terms. This matters for the design, not just for convenience: if sentiment sat only at
+  L3, the L3-vs-L1 comparison would confound a richer *representation* with an extra
+  *data source*. With the number in L1, that comparison isolates representation, which is
+  what the information ladder was built to measure.
+- **Change, not level.** News tone is heavily autocorrelated; the level is a slow fixed
+  effect. Calomiris & Mamaysky (2019): change, frequency and unusualness carry the
+  information. The L1 fields are tone change vs prior window and article volume vs its own
+  normal, with the level kept as context only.
+- **The Alpha Vantage score is a vendor black box.** The audit claim covers provenance and
+  timing, not the score's internal validity, and the report must say so. Compute a
+  Loughran-McDonald dictionary score over the same frozen article text as a transparent
+  robustness check, so no result rests solely on an unexaminable model.
+- **Row 16 does two jobs.** It supplies the long-history backbone the text block needs
+  (section 2, Block E flags Alpha Vantage's shallow history as a single point of failure),
+  making percentiles for that block meaningful. And it is a daily unrevised proxy for the
+  shock-type driver behind row 3: the CPV mechanism is quarterly and revised, news
+  attention moves daily. Whether a reasoning model reads a correlation-regime turn from
+  attention before a linear rule does is a genuine research angle, not a data convenience.
+- Rows 9 and 10 overlap: the term spread contains the 3M leg. Both are kept because the
+  level and the slope carry different information, but they should not be counted as two
+  independent dimensions.
+- Row 12 carries an explicit `documented_horizon` of 1-5 years. It is in the pack as a
+  slow anchor, not as a weekly timing input, and the record must say so or the LLM will
+  over-trade it. Asness (2003) is the reason for the real-yield adjustment rather than a
+  raw Fed-model gap.
+- Row 13 is graded on Hurst, Ooi & Pedersen (2017) and Faber (2007) as *strategy*
+  evidence, with Huang et al. (2020) as the counterweight on *predictability*. Lookbacks
+  are fixed ex ante from the literature, never searched.
+- Rows 4 and 7 are the two that need real plumbing: ALFRED vintage retrieval for 4, and a
+  recomputation flag for 7. Every other row is a direct series pull.
+
+**Cut ordering if the freeze has to reach eight.** First three out: row 14 (bond trend,
+contested, and rows 3, 9 and 11 already cover the bond leg), row 10 (overlaps row 9),
+row 5 (largely spanned by rows 4, 11 and 16). That leaves a core of eight plus the text
+leg: realized vol, VIX, stock-bond correlation, core CPI, HY OAS, term spread, 10y yield,
+equity trend, with rows 15 and 16.
+
+### Not included, and why
+
+| Dropped | Reason |
+|---|---|
+| Investor sentiment (Baker-Wurgler) | Monthly, retroactively recomputed with full-sample PCA, long and irregular publication lag; several input proxies are themselves badly lagged. Verify whether the public series even reaches the evaluation window. Rows 15 and 16 are the timestamped replacements. |
+| Net equity issuance (ntis) | Fails post-2008 in the Goyal-Welch-Zafirov update, revised, and sourced from an annually-updated academic dataset. Not constructible live at weekly frequency. |
+| Dividend-price and earnings-price ratio | Correlated with each other and with row 12, all weak at weekly horizon. One valuation anchor is enough, and the real-yield-adjusted version is the better one. |
+| Cochrane-Piazzesi forward-rate factor | Thornton & Valente (2012): large in-sample R², no out-of-sample Sharpe or utility gain. The tent factor is full-sample estimated. Row 11 covers the bond leg with a near-mechanical signal instead. |
+| Stock-market variance (`svar`) | Right idea, wrong instrument. Rows 1 and 2 are the daily, clean version. |
+| BAA-AAA default spread | Goyal-Welch report weak OOS. Rows 6, 7 and 8 are the daily, the economically-cleaner, and the forward-looking versions of the same idea. |
+
+### Questions to put to Lennart
+
+1. Which equity and bond indices are the partner's actual proxies? This determines rows
+   1, 3, 13 and 14 and the transaction-cost assumptions.
+2. Does the partner have licensed feeds or internal text pipelines? MOVE, longer ICE OAS
+   history, a vendor risk model; on the text side, any existing scoring of Fed
+   communication, Beige Book or earnings calls would let us add a source otherwise
+   deferred on cost.
+3. Is there a house view on which of these the investment committee already looks at? A
+   candidate the committee ignores is a weaker comparator input regardless of its
+   academic record, and one they rely on that is missing here is the most useful thing
+   they can tell us.
+4. Confirm the freeze target and the cut ordering: 5-8 rows from this 16, frozen jointly
+   before the first evaluation run.
+
+---
+
 ## 3. Agent interface: how the LLM reaches data and tools
 
 **Fixed by decision (24 Aug 2026):** the pipeline is agentic, the LLM is the aggregator,
@@ -428,13 +610,61 @@ from Stage 1 to Stage 2 becomes a loop rather than a single handoff.
 
 ### 3.1 What "evidence pack" now means
 
-Under agent-driven retrieval the pack is three artifacts, not one.
+Under agent-driven retrieval the pack is four artifacts, not one.
 
 | Artifact | What it is | When it exists |
 |---|---|---|
-| **Sealed substrate** | frozen point-in-time store; every value carries a vintage. The only thing tools may read | built once, offline, before any run |
-| **Briefing** | compact opening context: universe, portfolio state, constraints, signal manifest, block composites | assembled per decision date |
+| **Sealed substrate** | frozen point-in-time store holding *every* candidate signal at *every* rung, including L4 material. Every value carries a vintage. Nothing reads this directly at run time | built once, offline, before any run |
+| **Rung view** | the substrate projected onto one information rung: L1, L2, L3 or L4. Its own file, its own hash. The only thing tools may read | materialised at build time, one per rung |
+| **Briefing** | compact opening context assembled from the rung view: universe, portfolio state, constraints, signal manifest, block composites | assembled per decision date |
 | **Realized pack** | the briefing plus the complete ordered trace of tool calls and returns | produced by the run; this is the audit artifact |
+
+**Build wide, serve narrow.** The substrate holds all sixteen candidates from section 2b
+even though L1 serves five to eight of them, and it holds the L4 raw text that no decision
+run may ever see. Two reasons. First, an L1 run and an L3 run on the same date are then
+provably reading the same underlying numbers, because both views were projected from one
+hashed source; build them separately and that agreement is an assertion rather than a
+checkable fact, and the whole information-ladder comparison rests on it. Second, the
+freeze and the selection become two separate acts: the substrate freezes everything, and
+a separate pre-registered record names which signals constitute L1. Freeze only the
+selected eight and any later question about a dropped signal forces a re-fetch after
+results have been seen, which destroys the pre-registration. Freeze all sixteen and that
+question is answerable as a pre-declared robustness arm. The marginal cost is a handful
+of extra FRED series.
+
+**Rungs are materialised views, not run-time filters.** A filter applied inside the tool
+layer makes the rung boundary an allowlist, and an allowlist fails open silently: add a
+field to the substrate, forget to exclude it, and an L1 run has been served L3 data with
+nothing in the log to show it. Materialising each rung as its own file inverts that. The
+harness points an L1 run at the L1 file, which physically cannot address anything else, so
+a projection bug surfaces at build time as a view with the wrong columns rather than at
+run time as an invisible leak.
+
+The same choice closes a subtler channel. If `list_signals` ran against the substrate and
+refused out-of-rung ids, the refusal would itself tell the model that richer evidence
+exists and is being withheld. Against an L1 view there is nothing to refuse: the manifest
+lists the L1 signals and the L1 signals are all there is.
+
+**Rungs select, they never compute.** Every derived quantity, percentile, z-score, block
+composite, disagreement score, is computed once in the substrate and copied into whatever
+views include it. If L1 recomputed z-scores over only the L1 signals, L1 and L3 would
+disagree on fields they are supposed to share and the ladder comparison would be measuring
+a normalisation artifact.
+
+**The comparator reads the L1 view file.** Not the substrate, and not its own extract.
+"The LLM and C2 receive identical information", which is the premise of RQ2, then reduces
+to a hash equality that can be stated in the report rather than an assurance that can only
+be trusted.
+
+**What can actually be frozen on day one.** The substrate can only contain decision dates
+that have already happened. If the evaluation window runs forward from the freeze, what
+gets frozen at t0 is the *recipe*, the schema, source list, transformation code,
+normalisation parameters and rung definitions, together with whatever history already
+exists. Records then accrue weekly under that frozen recipe, each append separately
+hashed and timestamped. The freeze is only worth something if the append is strictly
+mechanical: once t0 has passed, no judgment call, no added source, no changed transform,
+or the pre-registration is decoration. Whether the window is historical, forward, or split
+across the two determines which of these applies and needs settling before t0.
 
 The audit record required by Objective 1 is the **realized pack**. This is stronger than
 a static pack, not weaker: it records not only what evidence existed but what the agent
@@ -456,6 +686,9 @@ Non-negotiable. Each is enforced in code, not by prompt instruction.
 2. **Tools read the frozen store only.** No tool hits a live API during a run. Leakage
    then becomes a property of how the store was built, which can be tested once and for
    all, rather than a property of the agent loop, which cannot.
+2b. **A run is bound to exactly one rung view and cannot address the substrate.** The
+   rung is chosen by the harness before the run starts and is recorded in the audit
+   record by hash. There is no tool argument that selects a rung.
 3. **Every returned value carries its vintage.** Filtering is `vintage <= t`, applied in
    the store layer, below the tool layer.
 4. **No tool returns raw article text, headlines, absolute index levels, or calendar
