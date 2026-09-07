@@ -151,12 +151,16 @@ The textual evidence is drawn from a commercial sentiment feed with per-record p
 
 The system is evaluated at increasing levels of information richness.
 
-- *L1:* standardized quantitative signals and block-level composites;
-- *L2:* additional cross-signal disagreement, reliability, vintage, and missingness information;
-- *L3:* qualitative regime descriptions and structured sentiment summaries;
-- *L4:* minimally controlled information used only as a leakage or contamination diagnostic.
+The rungs are cumulative. Each adds fields to the same signal record rather than replacing it, so a signal carries an identical value at every rung and differs only in what travels with it.
 
-L1 is the primary level for RQ2 because the LLM and deterministic comparator receive the same information.
+- *L1:* standardized quantitative signals and block-level composites, with point-in-time provenance. Exactly the comparator's input set;
+- *L2:* absolute levels in natural units and dated trailing history, together with cross-signal disagreement, reliability, vintage, and missingness information;
+- *L3:* qualitative regime descriptions and structured sentiment summaries, written by frozen template;
+- *L4:* raw source text, full series history, calendar dates, and named events.
+
+Every field at every rung has a declared producer, and no field at any rung is written by a language model. L1 and L2 are computed in code from the source series; L3 is rendered by a versioned template from L1 and L2 fields; L4 is copied unchanged from source.
+
+L1 is the primary level for RQ2 because the LLM and deterministic comparator receive the same information. Binding L1 to the comparator's input set is deliberate: were the LLM given fields the comparator has no slot for, a measured difference would confound reasoning with information coverage.
 
 The comparison between L3 and L1 measures whether richer information representation changes the LLM's decisions. L3 versus the deterministic comparator is reported separately as a system-level comparison rather than as the primary equivalence test.
 
@@ -312,9 +316,11 @@ Historical data may therefore be used to estimate risk-model parameters, but pos
 
 Temporal validity is enforced structurally rather than through prompting.
 
-Every evidence item carries an information-availability timestamp and the store prevents access to information unavailable at decision date $t$.
+Every evidence item carries an information-availability timestamp and the store prevents access to information unavailable at decision date $t$. This constraint is absolute and applies identically at every information rung.
 
-The model's ability to identify the underlying period from the supplied information is tested separately at each information rung.
+A second and weaker constraint is distinguished from it. Withholding information that identifies *which* decision date is being evaluated, through anonymization of absolute levels, calendar dates, and named events, applies at L1 only. Above L1 that information is released deliberately, because richer information is what the ladder exists to measure.
+
+The evaluation window is a fixed retrospective period beginning after the model snapshot's vendor-stated knowledge cutoff. *The study takes that cutoff as binding by assumption.* It is not independently verifiable, and all results are conditional on it. The model's ability to identify the underlying period from the supplied information is tested separately at each rung, and reported whether or not it is detected.
 
 For a sample of generated reports, each material claim is checked against the realized evidence pack for:
 
@@ -356,7 +362,9 @@ The project does not:
 - provide personalized investment advice;
 - make claims of investment outperformance.
 
-The limited post-cut-off window prevents credible performance inference. This is treated as a design constraint rather than a limitation introduced after observing the results.
+The limited post-cut-off window prevents credible performance inference. This is treated as a design constraint rather than a limitation introduced after observing the results. Its length, and therefore the number of observed allocation decisions, follows directly from which model snapshot is pinned, and that choice is recorded before evaluation.
+
+Temporal validity above the point-in-time constraint rests on an assumption that cannot be verified from outside the model provider. Two consequences are accepted explicitly. Any undetected contamination of the training corpus would weaken the comparison at every rung. And the design is valid for this model snapshot in this window rather than indefinitely, since a later replication would face a model for which the same window is no longer post-cut-off.
 
 The resulting prototype is an auditable investment-committee support system, not an autonomous investment system.
 

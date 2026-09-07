@@ -53,10 +53,13 @@ Three further results that should shape how any signal is graded:
   60/40 on return or Sharpe. Category expense ratios average 1.55%. This is the honest
   outside view on what the project is attempting.
 
-Combined with the project's own constraint (backtest starts after the model's
-knowledge cutoff, giving roughly 10-30 decisions), statistical outperformance is
-not establishable. Selecting signals by whether they beat 60/40 in that sample is
-fitting ~30 observations with a library of ~50 candidates.
+Combined with the project's own constraint, statistical outperformance is not
+establishable. The window runs from the pinned snapshot's knowledge cutoff to today, so
+its length is a consequence of which model is pinned, not a fixed fact: a current
+frontier snapshot leaves on the order of 10-20 weekly decisions, an older pinned snapshot
+with a cutoff two years back leaves on the order of 100. Either way, selecting signals by
+whether they beat 60/40 in that sample is fitting tens of observations with a library of
+~50 candidates.
 
 So outperformance is treated as a **design objective** (build what a real allocator
 would want, using signals with the best documented record) rather than as a
@@ -435,11 +438,18 @@ set: D/P, E/P, net equity issuance, stock variance, short rate, term spread, def
 spread, inflation, plus Baker-Wurgler sentiment and Cochrane-Piazzesi. That set has three
 problems for this project specifically.
 
-**Frequency.** Decisions are weekly over a post-cutoff window of roughly 10-30 dates.
-D/P, E/P, net issuance and Baker-Wurgler update monthly at best and several are revised.
-Across the evaluation window they move a handful of times. A signal that is near-constant
-over the window cannot generate divergence between the LLM and C2, so it contributes
-nothing to RQ2 or RQ3 no matter how good its long-horizon record is.
+**Frequency.** Decisions are weekly over a post-cutoff window whose length follows from
+which model snapshot is pinned: roughly 10-20 dates for a current frontier snapshot,
+roughly 100 for one with a cutoff two years back. D/P, E/P, net issuance and
+Baker-Wurgler update monthly at best and several are revised, so at the short end they
+move a handful of times and cannot generate divergence between the LLM and C2 at all.
+
+This argument was fairly criticised as conflating decision frequency with predictor
+frequency, and at 100 dates the criticism lands. Section 2c gives the version that
+survives at any window length: under equal weighting a slow row contributes a persistent
+offset rather than a response to evidence, because equal weights cannot express "use this
+slowly". **Pin the model snapshot first.** It sets the number of decisions, and therefore
+how much of the frequency argument rests on the window rather than on the weighting.
 
 **The missing variable.** The realized stock-bond correlation is absent. A 60/40
 benchmark assumes bonds hedge equities; that assumption flipped in 2022. Campbell,
@@ -470,31 +480,59 @@ count alone:
 
 No signal is selected using performance in the evaluation window.
 
-### Where text enters, and where it cannot
+### Where text enters
 
-Two rows are derived from news text. The rule governing them:
+**Standing assumption, decided 4 Sep 2026.** The evaluation window is a fixed
+retrospective period beginning after the model snapshot's vendor-stated knowledge cutoff.
+We treat that cutoff as binding. We do not verify it, we cannot verify it, and every
+result is conditional on it. The consequences are recorded in section 4.
 
-**Raw text never reaches a decision.** An FOMC statement names the target range; a
-headline names the event. Either dates the pack instantly, and the whole evaluation rests
-on the model not knowing the date. Text therefore contributes *quantities with a hard
-publication timestamp*, never prose the model reads directly. This is the section 1.1
-principle applied to the text block.
+Two rules were previously bundled under "leakage" and they are not the same rule. The
+distinction now decides the whole ladder:
 
-**We never generate narrative from our own numbers.** "Momentum is positive but
-weakening" carries no information the number lacks and hard-codes our thresholds into the
-pack. Both the LLM and C2 would then be reading our judgment rather than the evidence,
-which contaminates the comparison the project exists to make.
+- **Point-in-time discipline: nothing from after `t` may enter a decision.** Enforced in
+  the store layer by `vintage_date <= t`, below the tool layer. **Unchanged, and not
+  negotiable.** Nothing in this section relaxes it.
+- **Anonymisation: nothing that identifies *which* `t` this is.** No absolute levels, no
+  calendar dates, no named events. **Lifted above L1**, as a consequence of the assumption
+  above.
+
+Only the second rule moves. Anyone reading this section as permission to loosen the first
+has misread it.
+
+**What that changes.** L4 was previously a leakage diagnostic that never fed a decision.
+It is now a legitimate fourth rung. The ladder becomes a four-step measurement of
+information richness rather than three steps and a warning label, and the model gets back
+the thing anonymisation cost it most: calibrated priors about magnitude. It knows the
+credit spread is at the 93rd percentile and widening; now it can also know that means
+812 basis points, and everything it has learned about what 812 implies becomes usable.
+
+**One rule survives unchanged: no field at any rung is written by a language model.** L3
+is templated prose, not generated prose. That is an auditability claim, independent of
+leakage, and it is what lets the audit record state exactly what the model was shown.
 
 Ladder placement that follows:
 
-| Rung | Text-related content |
-|---|---|
-| L1 | Numeric text-derived signals: rows 15 and 16. Consumed by C2 on equal terms. |
-| L2 | Reliability, dispersion, vintage and missingness metadata for those rows. |
-| L3 | Structured summaries written by template from anonymised quantities: topic shares, regime labels. No datable specifics, names or events. |
-| L4 | Raw current-window text, as the leakage diagnostic only. Never feeds a decision. |
+| Rung | Adds | Producer |
+|---|---|---|
+| L1 | The decision set, exactly C2's inputs: standardised value, percentile, documented sign and horizon, as-of date, vintage date, revision class. Numeric text-derived signals (row 15) enter here and C2 consumes them on equal terms. | deterministic |
+| L2 | Calibration and reliability: absolute level and unit in natural terms, trailing history with real dates, evidence grade, out-of-sample fit and hit rate, staleness, missingness, revision magnitude, cross-signal disagreement contribution. | deterministic |
+| L3 | Narrative: one templated sentence per signal, one paragraph per block, a regime label, topic shares. The template may now name levels and dates, which the earlier anonymised version forbade. | template |
+| L4 | Raw context: source article text, full series history, calendar dates, named events. A rung, no longer a diagnostic. | verbatim |
 
-**Deferred on cost, not overlooked.** FOMC statement and minutes scoring (language change
+**Why levels sit at L2 and not L1.** L1 must remain exactly C2's input set or RQ2 stops
+being a clean test: give the LLM absolute levels that C2 has no slot for and any measured
+difference confounds reasoning with coverage, which is the confound section 2c's item 6
+exists to remove. Levels are genuinely valuable, so they go at the first rung where
+giving the LLM more than C2 is the point.
+
+**What the assumption does not buy.** The rungs still exist and still bind. Their
+justification was never only leakage: the rungs *are* the independent variable. Collapse
+them and RQ2 and RQ3 have no design, only one arm and an anecdote.
+
+**Deferred on cost, and now only on cost.** Part of the reason to hold these back was
+that raw text dates the pack. That reason is gone, and L4 gives them somewhere real to
+live, so what remains is an ingestion-cost decision rather than a design one. FOMC statement and minutes scoring (language change
 vs prior statement is the informative part), Beige Book tone, Treasury quarterly refunding
 statements (supply drives term premium, and nothing else on the list captures supply),
 aggregate earnings-call tone, 10-K risk-factor language change. Each has a clean timestamp
@@ -513,29 +551,33 @@ against each source.
 
 | # | Block | Signal | What it says | Source | Freq | Rev. | Hist. | Horizon | Grade |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | A Risk | Realized equity volatility, 21d and 63d | How turbulent equities actually are right now | derived from prices | D | none | index | 1m | strong |
-| 2 | A Risk | VIX level and expanding percentile | What the option market charges for equity insurance | FRED `VIXCLS` | D | none | 1990 | 1-3m | strong |
+| 1 | A Risk | Realized volatility, equity **and bond** legs, 21d and 63d | How turbulent each leg actually is right now | derived from prices | D | none | index | 1m | strong |
+| 2 | A Risk | Variance risk premium: VIX less 63d realized vol, with level as context | What the option market charges for equity insurance over and above realized risk | FRED `VIXCLS` | D | none | 1990 | 1-3m | strong |
 | 3 | B Regime | Realized stock-bond correlation, 63d and 252d | Whether bonds are still hedging equities | derived from prices | D | none | index | 1-12m | strong |
 | 4 | B Regime | Core CPI YoY | Which inflation regime sets the correlation sign | FRED via ALFRED vintages | M | vintage | 1957 | 1-12m | strong (regime) |
 | 5 | B Regime | 5y5y forward breakeven | What the market expects inflation to be, daily and unrevised | FRED `T5YIFR` | D | none | 2003 | 1-12m | moderate |
 | 6 | B Credit | HY OAS, level and 3m change | How much extra yield risky borrowers must pay | FRED `BAMLH0A0HYM2` | D | none | 1996 | 1-12m | moderate-strong |
 | 7 | B Credit | Excess bond premium | Credit spread net of expected default, the part that predicts | Fed FEDS Notes | M | recomp. | 1973 | 3-12m | strong |
-| 8 | B Credit | SLOOS net % tightening, C&I standards | Whether banks are actually restricting credit, ahead of spreads | FRED (verify mnemonic, `DRTSCILM`) | Q | none | 1990 | 3-12m | moderate |
+| 8 | B Credit | SLOOS net % tightening, C&I standards | Whether banks are actually restricting credit, ahead of spreads | FRED `DRTSCILM` | Q | none | 1990 | 3-12m | moderate |
 | 9 | B Rates | Term spread 10y-3m | Steep, flat or inverted curve | FRED `T10Y3M` | D | none | 1982 | 6-18m | moderate |
 | 10 | B Rates | 3M Treasury bill yield | Policy stance and the risk-free alternative | FRED `DGS3MO` | D | none | 1981 | 1-12m | moderate |
 | 11 | C Carry | 10y nominal yield | Bond carry: starting yield mechanically drives long-horizon bond return | FRED `DGS10` | D | none | 1962 | 5-10y | strong |
 | 12 | C Valuation | CAPE yield minus 10y real yield | Equity valuation *after* adjusting for the real discount rate | Shiller + FRED `DFII10` | M | recomp. | 2003 | 1-5y | moderate |
 | 13 | D Trend | Equity trend: price vs 10-month SMA, and 12-1m return | Whether equities are trending, framed as drawdown control | prices | D/M | none | index | 1-6m | moderate |
 | 14 | D Trend | Bond 12-1m total return | Whether duration is trending | prices | M | none | index | 1-12m | contested |
-| 15 | E Text | News tone change and article volume vs normal | Whether the news flow has turned, and how unusual it is | Alpha Vantage `NEWS_SENTIMENT` | D | none, timestamped | ~2022 | 1-3m | short-history |
+| 15 | E Text | News tone change and article volume vs normal | Whether the news flow has turned, and how unusual it is | SF Fed Daily News Sentiment Index; Alpha Vantage `NEWS_SENTIMENT` for the corpus | D | none | 1980 | 1-3m | moderate |
 | 16 | E Text | Economic Policy Uncertainty | Policy uncertainty in the press; fast read on inflation-led vs growth-led shocks | FRED `USEPUINDXD` | D | none | 1985 | 1-12m | moderate |
+
+Section 2c assigns each row a role in the comparator's objective and states which term it
+enters. Rows 1 and 2 were amended above as a direct consequence of writing that equation.
 
 **Notes that belong on the table.**
 
-- **Row 15 is numeric and belongs in L1.** `NEWS_SENTIMENT` returns
-  `overall_sentiment_score`, `ticker_sentiment_score` and `relevance_score` per article
-  with `time_published`, so it aggregates to a weekly figure C2 can consume on equal
-  terms. This matters for the design, not just for convenience: if sentiment sat only at
+- **Row 15 is numeric and belongs in L1.** The SF Fed index is a daily number back to
+  1980; Alpha Vantage `NEWS_SENTIMENT` returns `overall_sentiment_score`,
+  `ticker_sentiment_score` and `relevance_score` per article with `time_published`. Either
+  aggregates to a weekly figure C2 can consume on equal terms; section 2c takes the SF Fed
+  version for the tilt and keeps Alpha Vantage as the corpus behind L3 and L4. This matters for the design, not just for convenience: if sentiment sat only at
   L3, the L3-vs-L1 comparison would confound a richer *representation* with an extra
   *data source*. With the number in L1, that comparison isolates representation, which is
   what the information ladder was built to measure.
@@ -543,8 +585,10 @@ against each source.
   effect. Calomiris & Mamaysky (2019): change, frequency and unusualness carry the
   information. The L1 fields are tone change vs prior window and article volume vs its own
   normal, with the level kept as context only.
-- **The Alpha Vantage score is a vendor black box.** The audit claim covers provenance and
-  timing, not the score's internal validity, and the report must say so. Compute a
+- **The Alpha Vantage score is a vendor black box.** This is the reason section 2c moves
+  the tilt input to the SF Fed index, whose lexical method is published. Where the Alpha
+  Vantage score is still used, the audit claim covers provenance and timing, not the
+  score's internal validity, and the report must say so. Compute a
   Loughran-McDonald dictionary score over the same frozen article text as a transparent
   robustness check, so no result rests solely on an unexaminable model.
 - **Row 16 does two jobs.** It supplies the long-history backbone the text block needs
@@ -566,11 +610,10 @@ against each source.
 - Rows 4 and 7 are the two that need real plumbing: ALFRED vintage retrieval for 4, and a
   recomputation flag for 7. Every other row is a direct series pull.
 
-**Cut ordering if the freeze has to reach eight.** First three out: row 14 (bond trend,
-contested, and rows 3, 9 and 11 already cover the bond leg), row 10 (overlaps row 9),
-row 5 (largely spanned by rows 4, 11 and 16). That leaves a core of eight plus the text
-leg: realized vol, VIX, stock-bond correlation, core CPI, HY OAS, term spread, 10y yield,
-equity trend, with rows 15 and 16.
+**Cut ordering if the freeze has to reach eight.** Superseded by section 2c, which
+derives the eight from the comparator's objective rather than from judgement: rows 1, 2,
+3, 6, 9, 11, 13 and 15. Row 10 is dropped outright; rows 4, 5, 7, 8, 12, 14 and 16 remain
+in the sealed pack as the robustness set, available to the LLM and not to C2.
 
 ### Not included, and why
 
@@ -599,6 +642,307 @@ equity trend, with rows 15 and 16.
    before the first evaluation run.
 
 ---
+
+## 2c. The comparator equation, and the roles it assigns
+
+**Why this comes before the cut.** `proposal-v2.typ` defines C2 as "a transparent
+multi-variable rule operating on the same L1 evidence" and defers the exact form. That
+deferral is now the binding gap: without the equation, a candidate row is justified by
+plausibility, and the set drifts toward "things an allocator might like". With the
+equation, a row is justified by where it enters, and rows that enter nowhere are visible.
+Writing it first also settles the objection that risk and regime variables do not belong
+because they are not return predictors. They belong because they appear in the objective.
+
+### C2, stated
+
+Two assets, weekly decision date `t`, equity weight `w` and bond weight `1-w`:
+
+```
+w*_t = argmax over w in [w_lo, w_hi] of
+         w * mu_eq,t + (1-w) * mu_bd,t  -  (lambda/2) * var_p(w, Sigma_t)
+```
+
+For two assets this has a closed form before clipping:
+
+```
+              (mu_eq,t - mu_bd,t)/lambda  +  var_bd,t - cov_t
+w*_t  =      ------------------------------------------------
+                    var_eq,t + var_bd,t - 2*cov_t
+
+with  cov_t = rho_t * sd_eq,t * sd_bd,t
+and   denominator = variance of the equity-minus-bond spread
+```
+
+**This is the answer to "correlation is not a return predictor".** Hold expected returns
+fixed, `mu_eq = mu_bd`. The first term vanishes and
+
+```
+w*_t = (var_bd - cov_t) / var_(eq-bd)
+```
+
+which is the minimum-variance weight and a function of `rho_t` alone once the two
+volatilities are fixed. At `sd_eq = 16%` and `sd_bd = 6%`, moving `rho` from -0.4 to +0.4
+moves that term from 20.2% to -1.1%, about 21 percentage points, with no change in any
+return forecast. A variable earns a place by moving `w`. It does not have to forecast
+`mu` to do that.
+
+The correlation has a second effect in the same equation. As `rho` rises the denominator
+shrinks, from 0.0369 to 0.0215 in the same example, so the return tilt is *amplified*
+exactly when bonds stop diversifying. Both effects are mechanical consequences of the
+objective, and neither is representable in a rule built only from return predictors.
+
+### Pinning lambda so C2 is a tactical overlay
+
+`lambda` is not chosen. It is fixed by requiring that C2 returns the strategic benchmark
+when every signal sits at its historical median:
+
+```
+lambda = mu_bar / ( 0.60 * var_bar_(eq-bd) - var_bar_bd + cov_bar )
+```
+
+where `mu_bar` is the long-run equity-minus-bond premium and the barred second moments
+are long-run values, all computed from pre-cutoff history only. With `mu_bar = 3%`,
+`sd_eq = 16%`, `sd_bd = 6%`, `rho_bar = -0.2`, this gives `lambda = 2.1`.
+
+This buys the property that matters for auditability: **C2 equals 60/40 under neutral
+evidence, so every basis point of deviation is attributable to a named signal.** It also
+removes the most arbitrary constant in the specification.
+
+### The two blocks
+
+**Risk, `Sigma_t`.** `sd_eq` and `sd_bd` from blended 21d and 63d realized volatility,
+annualised. `rho` from blended 63d and 252d realized correlation. Nothing estimated,
+nothing fitted, windows fixed by convention.
+
+**Return, `mu`.** Anchor plus tilt, with the two legs built separately:
+
+```
+mu_eq,t - mu_bd,t = mu_bar + kappa * ( s_eq,t - s_bd,t )
+
+s_eq,t = (1/n_eq) * sum over equity rows of  sign_j * z_j,t
+s_bd,t = (1/n_bd) * sum over bond rows   of  sign_j * z_j,t
+```
+
+`z_j,t` is the expanding-window z-score already specified in section 1. Weights are
+equal and are not estimated: Rapach, Strauss & Zhou (2010) is the standing result that
+equal-weight pooling of individually weak predictors beats fitted combinations out of
+sample, which makes the absence of fitting a design choice rather than a concession.
+
+Splitting the legs is not cosmetic. The term spread predicts equity returns and bond
+returns with the same sign, so in a single composite it partly cancels against itself.
+Separate legs let it enter the bond leg where its documented effect lives.
+
+### Eligibility for the tilt
+
+Equal weighting is a stronger constraint than plausibility screening, and it is the
+constraint that re-screens the sixteen. Because every row in a leg carries weight `1/n`,
+a row that is weak, stale or redundant does not merely underperform, it actively dilutes
+the composite. Three conditions follow, applied uniformly:
+
+1. **Varies at or near the decision frequency.** A row updating quarterly contributes an
+   identical `1/n` offset for twelve consecutive weeks. That is a persistent bias in the
+   level of the tilt, not a response to evidence. This is the precise version of the
+   frequency argument in section 2b: the objection is not that slow variables are
+   uninformative, it is that *equal weighting cannot express "use this slowly"*.
+2. **Has a sign documented for return prediction**, not for output, investment or
+   activity. A row entering at `1/n` with a guessed sign injects noise at the same
+   magnitude as a good row contributes signal.
+3. **Is not spanned by another row in the same leg.** Fitted weights would absorb
+   redundancy. Equal weights convert it into a hidden overweight on whatever factor the
+   redundant rows share.
+
+A fourth rule applies to every row that passes: **z-scores are winsorised at plus or
+minus 3 before entering a composite.** Standard, pre-registered, unfitted, and it bounds
+the influence of any single row, which matters most for rows with short history.
+
+Rows failing any condition are **not deleted**. They stay in the sealed pack as
+*LLM-only* rows: evidence the comparator structurally cannot use. That category is a
+designed feature, not a leftover; see the RQ3 note below.
+
+### Role of every row
+
+| # | Signal | Role | Enters C2 through | Sign |
+|---|---|---|---|---|
+| 1 | Realized volatility, equity **and bond** legs | Risk | `sd_eq`, `sd_bd` | n/a |
+| 3 | Realized stock-bond correlation | Risk | `rho` | n/a |
+| 2 | Variance risk premium, VIX less 63d realized | Return, equity | `s_eq` | + |
+| 6 | HY OAS, 3m change | Return, equity | `s_eq` | - |
+| 12 | CAPE yield minus 10y real yield | Return, equity | `s_eq` | + |
+| 13 | Equity trend, 10m SMA and 12-1 | Return, equity | `s_eq` | + |
+| 15 | News tone change (SF Fed index, see below) | Return, equity | `s_eq` | + |
+| 9 | Term spread 10y-3m | Return, bond | `s_bd` | + |
+| 11 | 10y nominal yield | Return, bond | `s_bd` | + |
+| 14 | Bond 12-1m return | Return, bond | `s_bd` | + |
+| 4 | Core CPI YoY | LLM-only | nothing | n/a |
+| 5 | 5y5y forward breakeven | LLM-only | nothing | n/a |
+| 7 | Excess bond premium | LLM-only | nothing | n/a |
+| 8 | SLOOS net tightening | LLM-only | nothing | n/a |
+| 10 | 3M Treasury bill yield | **dropped** | nothing | n/a |
+| 16 | Economic Policy Uncertainty | LLM-only | nothing | n/a |
+
+### Why four rows moved and one was dropped
+
+**Row 10, 3M bill: dropped outright.** It fails condition 3 twice over. The term spread
+is `10y - 3M`, so rows 9, 10 and 11 in one equal-weighted bond leg put three quarters of
+that leg on the level of rates. Worse, the sign is wrong: as a predictor of *bond excess
+returns* the short rate's documented sign is negative, not the positive one a carry story
+implies. Section 2b already flagged the overlap as optional; the equation makes the drop
+mandatory. No replacement is proposed, because the bond leg's three economic dimensions,
+level (11), slope (9) and trend (14), are complete without it. Adding a weak fourth row to
+reach a count is the failure mode this screen exists to prevent.
+
+**Row 8, SLOOS: LLM-only.** Quarterly, released with roughly a five-week lag. Its z-score
+is a step function that holds constant for about twelve weekly decisions at a time, so at
+`1/n` it is a slowly drifting offset rather than evidence. Fails condition 1. There is no
+PIT-clean weekly substitute for the bank-lending channel, which is exactly why the row
+stays in the pack rather than being cut: the information is available to the LLM and
+structurally unavailable to C2.
+
+**Row 7, excess bond premium: LLM-only.** Monthly and retroactively recomputed, published
+through FEDS Notes with no vintage archive, so a point-in-time series cannot be
+reconstructed the way ALFRED reconstructs core CPI. Fails condition 1 and sits awkwardly
+against the PIT rule. It is also the third credit row in a leg where one suffices
+(condition 3). Rejecting a full-sample recomputed construct is the same standard already
+applied to the Cochrane-Piazzesi tent factor and to Baker-Wurgler in section 2b; applying
+it inconsistently would be worse than losing the row.
+
+**Row 16, EPU: LLM-only.** Baker, Bloom & Davis (2016) document effects on output,
+investment and firm-level volatility. The sign for *equity return prediction* is
+contested, and there is a coherent argument in both directions: high uncertainty raises
+the required risk premium, which implies higher subsequent returns, not lower. Fails
+condition 2. Its two other stated jobs in section 2b, supplying long history to the text
+block and proxying shock type, are both contextual rather than tilt roles, and the first
+is superseded by the row 15 change below.
+
+**Row 12, CAPE yield minus real yield: kept, with a declared mismatch.** Both legs move
+daily (CAPE's numerator is price; `DFII10` is daily), so it passes condition 1 despite the
+name. But its documented horizon is one to five years and C2 decides weekly, so C2's audit
+record will show a long-horizon signal driving a weekly tilt. That is a declared property
+of the specification, not a defect, and it is the reason the row is first out if the
+primary set has to reach eight.
+
+### Row 15 changes source
+
+The Alpha Vantage series starts around 2022. An expanding-window z-score over roughly
+three years of history is unstable, and it would carry the same `1/n` weight as a row
+with forty years behind it. Winsorising bounds the damage but does not fix the underlying
+problem that the normalisation is being learned largely *during* the evaluation window.
+
+**Replacement: the San Francisco Fed Daily News Sentiment Index** (Shapiro, Sudhof &
+Wilson 2020; Buckman et al. 2020). Daily, back to January 1980, free, published directly
+by the SF Fed, and built by a documented lexical method over 24 newspapers via Factiva
+rather than by a vendor model. It fixes three problems in one substitution: short history,
+vendor opacity, and the L1 numeric requirement. Verify before freezing: update cadence,
+publication lag, and whether any vintage archive exists.
+
+**Alpha Vantage is retained**, in two narrower roles. It remains the source of the raw
+article corpus that L4 needs and that the L3 templates are built over, which the SF Fed
+index does not provide. And its ticker-level score stays in the pack as an equity-specific
+numeric, LLM-only until its history supports a stable expanding z. The section 2b argument
+for putting a numeric news signal in L1, that otherwise the L3-versus-L1 comparison
+confounds representation with an extra data source, is satisfied by the SF Fed row and
+does not depend on which vendor supplies it.
+
+### What the equation exposes
+
+**1. There is no bond volatility row.** The objective needs `sd_bd` and the sixteen
+supply `sd_eq` (row 1) and `rho` (row 3) but not `sd_bd`. Fix: row 1 covers both legs.
+Free, derived from prices, PIT-clean, no new source. This is a gap that plausibility
+screening could not have found.
+
+**2. Row 2 should be the variance premium, not the VIX level.** The return-predictive
+content in option prices is implied variance net of expected realized variance
+(Bollerslev, Tauchen & Zhou 2009), not the level. Keep the level as context.
+
+This also resolves the objection that the catalogue overstates volatility as a return
+predictor. In this equation volatility does two separate jobs through two separate
+channels: realized volatility enters `Sigma` and cuts `w` when markets are turbulent,
+while the variance premium enters `s_eq` with a positive sign because insurance is
+expensive. Both are simultaneously true and the equation keeps them apart. A prose
+argument about whether "volatility forecasts returns" cannot.
+
+**3. Six rows have no mechanical entry, and that is the interesting part.** For rows 4
+and 5 the reason is structural rather than a defect in the row: realized correlation is
+already the sufficient statistic for the correlation regime, core CPI explains why `rho`
+moves but adds nothing on top of `rho` itself, and manufacturing an entry point would
+mean fitting an inflation-to-correlation mapping, which is exactly the kind of free
+parameter this design is trying not to have. Rows 7, 8 and 16 fail the eligibility
+conditions above, and row 15's vendor version is superseded.
+
+So they sit in the pack as evidence C2 structurally cannot use. That converts a vague
+hope into pre-registerable RQ3 hypotheses with named mechanisms: *does the LLM turn
+defensive on an inflation print before realized correlation has registered the regime
+change?* *Does it act on a SLOOS tightening that C2 can only absorb as a quarterly step?*
+C2 cannot, by construction. If the LLM does and is right, that is a specific attributable
+finding rather than an unexplained divergence.
+
+**4. The cut is now constrained.** Rows 1 and 3 are `Sigma` and cannot be dropped without
+removing the objective's risk term. That leaves the return legs to absorb the cut. Taking
+the primary set to eight removes rows 12 (horizon mismatch, above) and 14 (graded
+contested in section 2b), giving:
+
+```
+Risk           1 realized vol, both legs      3 realized stock-bond correlation
+Equity return  2 variance premium             6 HY OAS 3m change
+               13 equity trend                15 news tone change (SF Fed)
+Bond return    9 term spread                  11 10y nominal yield
+```
+
+Two risk, four equity, two bond. Every row daily or near-daily, every row free.
+
+**5. The primary set needs no vintage store.** All eight rows above carry revision class
+`none`: as-of equals vintage, nothing is restated. The two rows that drove the ALFRED and
+recomputation-flag plumbing, core CPI (4) and the excess bond premium (7), are both now
+LLM-only. The vintage store is therefore on the robustness path, not the critical path.
+The architecture must still support it, because the robustness arm and the pack's
+integrity claim both depend on it, but the first working end-to-end run does not wait on
+it. This is the largest practical consequence of writing the equation first.
+
+**6. Coverage must be equalised, or RQ2 measures the wrong thing.** C2 now consumes ten
+rows and the pack holds sixteen. If the LLM saw all sixteen and C2 ten, a measured
+difference would confound reasoning with input coverage. The proposal already resolves
+this: the frozen primary pack is five to eight signals with the remainder reserved for
+pre-registered robustness. Bind the two together, so that **the primary pack is exactly
+C2's input set**, and the LLM-only rows live in the robustness pack with the RQ3
+hypotheses above attached to them.
+
+The demotions cannot be read as shrinking C2 into a weak opponent: C2 keeps the rows that
+pass a uniform screen, and what it loses is the stale, the recomputed, the sign-contested
+and the redundant.
+
+### Parameters, and where each one comes from
+
+| Parameter | Value | Source | Touches evaluation data |
+|---|---|---|---|
+| `lambda` | derived | neutral-60/40 condition on pre-cutoff moments | no |
+| `mu_bar` | long-run equity-bond premium | pre-cutoff history | no |
+| `sign_j` | fixed per row above | literature | no |
+| weights `b_j` | `1/n` | equal weight, not estimated | no |
+| `kappa` | set so pre-cutoff sd(`w*`) equals target `tau` | pre-cutoff calibration | no |
+| vol windows 21d, 63d; corr 63d, 252d | convention | literature | no |
+| `[w_lo, w_hi]` | mandate | partner | no |
+| no-trade band | mandate | partner | no |
+
+Nothing in C2 is estimated on evaluation-window data. The pre-registration claim in the
+proposal is now checkable line by line rather than asserted.
+
+### Turnover
+
+Weekly mean-variance weights are noisy, and unmanaged churn inflates `d_t` and
+contaminates the divergence analysis. But a no-trade band applied to C2 alone would make
+C2 smooth against an unsmoothed LLM and inflate `d_t` for a purely mechanical reason.
+Resolution: C2 is defined **without** a band for RQ2 and RQ3, so both arms are compared
+as unsmoothed point-in-time decisions, and the band is applied only in the RQ4 portfolio
+translation where turnover and cost are the object of interest.
+
+### Open, and needing the partner
+
+1. `[w_lo, w_hi]`. Default proposal: 60 plus or minus 20 points, so `[0.40, 0.80]`.
+2. `tau`, the target standard deviation of `w*` over pre-cutoff history. Default 8 points.
+   This is the single dial controlling how tactical C2 is, and it is a mandate question,
+   not a statistical one.
+3. Whether the partner's own rule anchors on 60/40 or on a different strategic weight. If
+   the latter, the `lambda` condition takes that weight instead and nothing else changes.
 
 ## 3. Agent interface: how the LLM reaches data and tools
 
@@ -691,8 +1035,11 @@ Non-negotiable. Each is enforced in code, not by prompt instruction.
    record by hash. There is no tool argument that selects a rung.
 3. **Every returned value carries its vintage.** Filtering is `vintage <= t`, applied in
    the store layer, below the tool layer.
-4. **No tool returns raw article text, headlines, absolute index levels, or calendar
-   dates** when the anonymised arm is active. Relative quantities only.
+4. **Anonymisation is a property of the rung view, not of the tool.** The L1 view holds
+   no absolute levels, calendar dates, headlines or article text; L2 releases levels and
+   dated history; L4 releases raw text and named events. Because a run is bound to one
+   rung view (invariant 2b), a tool physically cannot return what its view does not
+   contain, and no tool argument can widen it.
 5. **Every call is logged**: name, arguments, return, ordinal position, latency.
 6. **The rule-based baseline's output is never visible to the agent.** See 3.3.
 7. **A hard call budget per decision.** See 3.5.
@@ -705,7 +1052,7 @@ retrieval.
 
 | Field | Why it is in the briefing |
 |---|---|
-| Decision index and rebalancing horizon | needed to reason about holding period; an opaque index rather than a real date in the anonymised arm |
+| Decision index and rebalancing horizon | needed to reason about holding period; an opaque index at L1, a real date from L2 up, following the run's rung view |
 | Universe and benchmarks | 50/50 and 60/40 definitions |
 | Current portfolio state | weights, drift since last rebalance, distance from each benchmark |
 | Constraint set and admissible action space | bands, increments, turnover cap, no leverage, no shorting |
@@ -939,21 +1286,28 @@ literature to build on rather than being improvised:
 
 Mitigations, in increasing strength:
 
-1. Strict post-training-cutoff test window (already in the proposal).
-2. **Entity and level anonymisation.** Ship z-scores and percentiles; never absolute
-   index levels, calendar dates, or named events. This is the asset-allocation analogue
-   of Glasserman-Lin's identifier anonymisation, and it resolves the tension between
-   "the LLM must never see prices for the backtest period" and "the evidence is derived
-   from prices."
-3. **Leakage canary.** Probe each realized pack by asking the model to date it. If it
-   can guess the month from the numbers, there is leakage regardless of pipeline
-   hygiene. Then ablate anonymisation on and off and measure whether recognition drops
-   and whether behaviour drops with it.
+1. Strict post-training-cutoff test window, with the vendor-stated cutoff **taken as
+   binding by assumption** (see section 2b). This is the load-bearing mitigation now, and
+   it is an assumption rather than a verified fact. It must be stated as such in the
+   pre-registration and again in the limitations, because it is the one premise in the
+   pipeline that cannot be checked.
+2. **Entity and level anonymisation, retained at L1 only.** Ship z-scores and percentiles
+   at the rung where the LLM and C2 are matched; release levels at L2 and raw text at L4.
+   This is the asset-allocation analogue of Glasserman-Lin's identifier anonymisation,
+   narrowed from a global rule to a rung property.
+3. **Leakage canary.** Probe realized packs by asking the model to date them, at each
+   rung. No longer a gate, since the cutoff is assumed, but it costs a handful of prompts
+   and a negative result upgrades the assumption to evidence. Report it either way; a
+   positive result at L1 would be a finding in its own right.
 4. A chronologically consistent or frozen open-weight checkpoint.
 
-The canary plus the anonymisation ablation is not yet standard practice, and running it
-at the **asset-allocation** level rather than the single-stock level, where nearly all
-existing work sits, is a genuine gap.
+**What the assumption costs, permanently.** Re-running this study in a later year will not
+work, because the cutoff assumption will be false for any model current then. The design
+is valid once, for this snapshot, in this window. That is a real limitation on RQ1 and it
+belongs in the write-up beside the assumption rather than buried.
+
+Running the canary at the **asset-allocation** level rather than the single-stock level,
+where nearly all existing work sits, remains a genuine gap.
 
 ### 4.3 Evaluation: difference first, interpretation second
 
@@ -1037,11 +1391,11 @@ Everything runs over identical decision dates and an identical substrate.
 | 5 | **Agent, full tool access** | the primary system |
 | 6 | Agent, briefing only, no tool calls | the value of retrieval itself |
 | 7 | Agent, reduced call budget | how much retrieval is enough |
-| 8 | Agent, anonymisation off | LLM look-ahead exposure |
+| 8 | Agent, L1 view with anonymisation off | whether L1 levels alone trigger period recognition |
 | 9 | Agent, rule's answer shown | anchoring effect |
 
 Arms 4 and 5 are the step-1 comparison. Arm 6 is the sharpest test of whether agent-driven
-retrieval earns its complexity over a static pack. Arm 8 is the leakage result. Arm 9 is
+retrieval earns its complexity over a static pack. Arm 8 is the leakage result, now a check on an assumption rather than a defence of a rule. Arm 9 is
 the check that arm 5's independence is real.
 
 ---
@@ -1100,6 +1454,9 @@ New, in rough order of importance to this document:
 - Moreira, A. & Muir, T. (2017). Volatility-Managed Portfolios. *Journal of Finance* 72(4).
 - Gilchrist, S. & Zakrajsek, E. (2012). Credit Spreads and Business Cycle Fluctuations.
   *American Economic Review* 102(4), 1692-1720.
+- Shapiro, A. H., Sudhof, M. & Wilson, D. J. (2020). Measuring News Sentiment.
+  *Journal of Econometrics*. SF Fed Working Paper 2017-01. Index published at
+  frbsf.org/research-and-insights/data-and-indicators/daily-news-sentiment-index/.
 - Bollerslev, T., Tauchen, G. & Zhou, H. (2009). Expected Stock Returns and Variance
   Risk Premia. *Review of Financial Studies* 22(11), 4463-4492.
 - Rapach, D. E., Strauss, J. K. & Zhou, G. (2010). Out-of-Sample Equity Premium
